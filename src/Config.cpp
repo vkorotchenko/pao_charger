@@ -44,7 +44,7 @@ int Config::getValueFromEEPROM(int def,int addr ) {
 }
 
 int Config::getTargetVoltage() {
-    return ceil(Config::getMaxVoltage() * Config::getTargetPercentage());
+    return round(Config::getMaxVoltage() * Config::getTargetPercentage());
 }
 
 void Config::printAllValues()

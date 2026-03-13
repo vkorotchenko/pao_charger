@@ -68,8 +68,8 @@ void Logger::print(const char *message, ...) {
 
 void Logger::logMessage(const char *format, va_list args) {
     char data[1000];
-  sprintf(data, format, args);
-  Serial.println(data);
+    vsprintf(data, format, args);
+    Serial.println(data);
 
 // Logger::logMessage(format, args);
 
@@ -85,12 +85,10 @@ void Logger::logIncomingMsg(unsigned long id, byte ext, byte len, float tVolt, f
 }
 
 void Logger::logOutgoingMsg(unsigned long id, byte ext, byte len, float tVolt, int tAmp){
-    Logger::log("=== INCOMING: ");
-    Logger::log("====== id: %d", id);
-    Logger::log("====== ext %X: ", ext);
-    Logger::log("====== length %d: ", len);
-    Logger::log("====== volt %dV: ", tVolt);
-    Logger::log("====== amp: %d", tAmp);
+    Logger::log("=== OUTGOING: ");
+    Logger::log("====== id dec: %d  hex: 0x%x", id, id);
+    Logger::log("====== volt dec: %.1f  hex: 0x%x", tVolt / 10.0, (int)tVolt);
+    Logger::log("====== amp dec: %.1f  hex: 0x%x", tAmp / 10.0, tAmp);
 }
 
 

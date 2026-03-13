@@ -128,7 +128,7 @@ void canWrite()
   unsigned char data[length] = {highByte(Config::getTargetVoltage()), lowByte(Config::getTargetVoltage()), highByte(Config::getMaxCurrent()), lowByte(Config::getMaxCurrent()), enableBit, 0x00, 0x00, 0x00};
 
 
-  //Logger::logOutgoingMsg(tcc_incoming_can_id ,ext, length, Config::getTargetVoltage(), Config::getMaxCurrent());
+  Logger::logOutgoingMsg(tcc_incoming_can_id ,ext, length, Config::getTargetVoltage(), Config::getMaxCurrent());
   byte sendStatus = CAN.MCP_CAN::sendMsgBuf(tcc_incoming_can_id, ext, length, data);
 
   if (sendStatus == CAN_OK)
