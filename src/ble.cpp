@@ -1,4 +1,5 @@
 #include "ble.h"
+#include "Config.h"
 
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 int32_t serviceId;
@@ -7,6 +8,27 @@ int32_t tAmpId;
 int32_t cVoltId;
 int32_t cAmpId;
 int32_t rTime;
+
+// Writable config characteristics
+int32_t cfgAmpId;
+int32_t cfgPctId;
+int32_t cfgMaxTimeId;
+
+void bleConfigCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
+    if (len < 2) return;
+    int val = ((int)data[0] << 8) | (int)data[1];
+
+    if (chars_id == cfgAmpId) {
+        Config::setMaxCurrent(val);
+        Logger::log("BLE config: target amps -> %d (1/10th A)", val);
+    } else if (chars_id == cfgPctId) {
+        Config::setTargetPercentage((float)val / 1000.0f);
+        Logger::log("BLE config: target pct -> %d/1000", val);
+    } else if (chars_id == cfgMaxTimeId) {
+        Config::setMaxChargeTime(val);
+        Logger::log("BLE config: max charge time -> %d s", val);
+    }
+}
 
 void Ble::setup() {
 
@@ -64,6 +86,30 @@ void Ble::setup() {
     Logger::log("Could not add char5");
   }
 
+  // Writable config characteristics (BLE central can write to update config)
+  char cmd[80];
+  int maxCurrent = Config::getMaxCurrent();
+  int targetPct  = (int)(Config::getTargetPercentage() * 1000);
+  int maxTime    = Config::getMaxChargeTime();
+
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+           (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
+  success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
+  if (!success) Logger::log("Could not add cfg amp char");
+
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+           (targetPct >> 8) & 0xFF, targetPct & 0xFF);
+  success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
+  if (!success) Logger::log("Could not add cfg pct char");
+
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+           (maxTime >> 8) & 0xFF, maxTime & 0xFF);
+  success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
+  if (!success) Logger::log("Could not add cfg max time char");
+
+  ble.setBleGattRxCallback(cfgAmpId,     bleConfigCallback);
+  ble.setBleGattRxCallback(cfgPctId,     bleConfigCallback);
+  ble.setBleGattRxCallback(cfgMaxTimeId, bleConfigCallback);
 
   ble.sendCommandCheckOK( F("AT+GAPSETADVDATA=02-01-06-05-02-0d-18-0a-18") );
 
@@ -73,6 +119,8 @@ void Ble::setup() {
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time){
+  ble.update(10);  // process incoming BLE writes (fires bleConfigCallback if a central wrote a config char)
+
   ble.print( F("AT+GATTCHAR=") );
   ble.print( tVoltId );
   ble.print( F(",") );
