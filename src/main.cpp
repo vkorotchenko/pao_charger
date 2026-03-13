@@ -68,6 +68,29 @@ bool checkTimer(){
   return true;
 }
 
+void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
+  if (dataLen < 4) return;
+  uint8_t cmd  = data[0];
+  uint16_t val = ((uint16_t)data[2] << 8) | data[3];
+  switch (cmd) {
+    case CAN_CMD_SET_MAX_TIME:
+      Config::setMaxChargeTime((int)val);
+      Logger::log("CAN config: max charge time -> %d s", (int)val);
+      break;
+    case CAN_CMD_SET_TARGET_PCT:
+      Config::setTargetPercentage((float)val / 1000.0f);
+      Logger::log("CAN config: target pct -> %d/1000", (int)val);
+      break;
+    case CAN_CMD_SET_TARGET_AMPS:
+      Config::setMaxCurrent((int)val);
+      Logger::log("CAN config: target amps -> %d (1/10th A)", (int)val);
+      break;
+    default:
+      Logger::log("CAN config: unknown cmd %d", (int)cmd);
+      break;
+  }
+}
+
 void canRead()
 {
   if (CAN_MSGAVAIL == CAN.checkReceive())
@@ -97,7 +120,37 @@ void canRead()
         if (buf[4] & B00010000) Logger::log("Error: communication timeout");
       }
     }
+    else if (receiveId == Config::getConfigSetId())
+    {
+      handleConfigSetCommand(buf, len);
+    }
   }
+}
+
+void canWriteConfig()
+{
+  int maxCurrent = Config::getMaxCurrent();
+  int nomVoltage = Config::getNominalVoltage();
+  int tgtVoltage = Config::getTargetVoltage();
+
+  unsigned char frame1[8] = {
+    highByte(maxCurrent), lowByte(maxCurrent),
+    highByte(maxCurrent), lowByte(maxCurrent),
+    highByte(nomVoltage), lowByte(nomVoltage),
+    highByte(tgtVoltage), lowByte(tgtVoltage)
+  };
+  CAN.MCP_CAN::sendMsgBuf(Config::getConfigBroadcast1Id(), ext, length, frame1);
+
+  uint16_t chgTime = (uint16_t)running_time;
+  uint16_t maxTime = (uint16_t)Config::getMaxChargeTime();
+  unsigned char frame2[8] = {
+    (uint8_t)(Config::getTargetPercentage() * 100),
+    (uint8_t)error_state,
+    highByte(chgTime), lowByte(chgTime),
+    highByte(maxTime), lowByte(maxTime),
+    0x00, 0x00
+  };
+  CAN.MCP_CAN::sendMsgBuf(Config::getConfigBroadcast2Id(), ext, length, frame2);
 }
 
 void canWrite()
@@ -145,6 +198,7 @@ void setup()
   Logger::log("CAN initialization successful");
   timer.setInterval(tcc_send_interval, canWrite);
   timer.setInterval(ble_interval, send_ble_info);
+  timer.setInterval(config_broadcast_interval, canWriteConfig);
 }
 
 void send_ble_info(){
