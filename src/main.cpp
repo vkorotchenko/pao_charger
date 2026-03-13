@@ -85,36 +85,16 @@ void canRead()
 
       //Logger::logIncomingMsg(receiveId, ext, length, pv_voltage, pv_current);
 
-      switch (buf[4])
-      { // Read out error byte
-
-      case B00000001:
-        error_state = buf[4];
-        Logger::log("Error: hardware error");
-        break;
-      case B00000010:
-        error_state = buf[4];
-        Logger::log("Error: overheating");
-        break;
-      case B00000100:
-        error_state = buf[4];
-        Logger::log("Error: input voltage not allowed");
-        break;
-      case B00001000:
-        error_state = buf[4];
-        Logger::log("Error: battery not connected");
-        break;
-      case B00010000:
-        error_state = buf[4];
-        Logger::log("Error: CAN bus error");
-        break;
-      case B00001100:
-        error_state = buf[4];
-        Logger::log("Error: No input voltage");
-        break;
-      default:
+      // Check status flags using bitwise AND (multiple bits can be set simultaneously)
+      if (buf[4] == 0) {
         error_state = 0;
-        break;
+      } else {
+        error_state = buf[4];
+        if (buf[4] & B00000001) Logger::log("Error: hardware failure");
+        if (buf[4] & B00000010) Logger::log("Error: overheating");
+        if (buf[4] & B00000100) Logger::log("Error: input voltage wrong");
+        if (buf[4] & B00001000) Logger::log("Error: charger off (reverse polarity protection)");
+        if (buf[4] & B00010000) Logger::log("Error: communication timeout");
       }
     }
   }
