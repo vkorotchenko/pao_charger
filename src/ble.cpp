@@ -31,7 +31,7 @@ void Ble::setup() {
   /* Change the device name to make it easier to find */
   Logger::log("Setting device name to %s': ", DISPLAY_NAME);
 
-  if (! ble.sendCommandCheckOK(F("AT+GAPDEVNAME=Pao Charger")) ) {
+  if (! ble.sendCommandCheckOK(F("AT+GAPDEVNAME=" DISPLAY_NAME)) ) {
     Logger::log("Could not set device name?");
   }
 
@@ -77,24 +77,29 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print( tVoltId );
   ble.print( F(",") );
   ble.println(tVolt, HEX);
-  
+  ble.waitForOK();
+
   ble.print( F("AT+GATTCHAR=") );
   ble.print( tAmpId );
   ble.print( F(",") );
   ble.println(tAmp, HEX);
-  
+  ble.waitForOK();
+
   ble.print( F("AT+GATTCHAR=") );
   ble.print( cVoltId );
   ble.print( F(",") );
   ble.println(cVolt, HEX);
-  
+  ble.waitForOK();
+
   ble.print( F("AT+GATTCHAR=") );
   ble.print( cAmpId );
   ble.print( F(",") );
   ble.println(cAmp, HEX);
-  
+  ble.waitForOK();
+
   ble.print( F("AT+GATTCHAR=") );
   ble.print( rTime );
   ble.print( F(",") );
   ble.println(running_time, HEX);
+  ble.waitForOK();
 }
