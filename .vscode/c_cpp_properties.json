@@ -1,14 +1,92 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
-            "name": "Win32",
+            "name": "PlatformIO",
             "includePath": [
-                "${workspaceFolder}/**"
+                "/Users/vkorotchenko/workspace/arduino/pao_charger/src",
+                "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/FlashStorage/src",
+                "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/Adafruit_BLE/src",
+                "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/SimpleTimer",
+                "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/CAN_BUS_Shield/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SPI",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA/utility",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/Core/Include",
+                "/Users/vkorotchenko/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/cores/arduino",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src/arduino",
+                "/Users/vkorotchenko/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/DSP/Include",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/variants/feather_m0",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/CI_Tests",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/HID",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/I2S/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SAMD_AnalogCorrection/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SDU/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Servo/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/USBHost/src",
+                "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Wire",
+                ""
             ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/Users/vkorotchenko/workspace/arduino/pao_charger/src",
+                    "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/FlashStorage/src",
+                    "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/Adafruit_BLE/src",
+                    "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/SimpleTimer",
+                    "/Users/vkorotchenko/workspace/arduino/pao_charger/lib/CAN_BUS_Shield/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SPI",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_ZeroDMA/utility",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/Core/Include",
+                    "/Users/vkorotchenko/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/cores/arduino",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Adafruit_TinyUSB_Arduino/src/arduino",
+                    "/Users/vkorotchenko/.platformio/packages/framework-cmsis@2.50400.181126/CMSIS/DSP/Include",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/variants/feather_m0",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/CI_Tests",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/HID",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/I2S/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SAMD_AnalogCorrection/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/SDU/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Servo/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/USBHost/src",
+                    "/Users/vkorotchenko/.platformio/packages/framework-arduino-samd-adafruit/libraries/Wire",
+                    ""
+                ]
+            },
             "defines": [
-                "_DEBUG",
-                "UNICODE",
-                "_UNICODE"
+                "PLATFORMIO=60119",
+                "ARDUINO_SAMD_ZERO",
+                "ARDUINO_SAMD_FEATHER_M0",
+                "ARM_MATH_CM0PLUS",
+                "__SAMD21G18A__",
+                "ARDUINO=10805",
+                "F_CPU=48000000L",
+                "USBCON",
+                "USB_VID=0x239A",
+                "USB_PID=0x800B",
+                "USB_PRODUCT=\"Adafruit Feather M0\"",
+                "USB_MANUFACTURER=\"Adafruit\"",
+                "ARDUINO_ARCH_SAMD",
+                "USB_CONFIG_POWER=100",
+                "ARDUINO_SAMD_ADAFRUIT",
+                ""
+            ],
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++11",
+            "compilerPath": "/Users/vkorotchenko/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc",
+            "compilerArgs": [
+                "-mcpu=cortex-m0plus",
+                "-mthumb",
+                ""
             ]
         }
     ],

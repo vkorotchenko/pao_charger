@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <SimpleTimer.h>
 #include "mcp2515_can.h"
 #include "Logger.h"
@@ -37,6 +38,7 @@ SerialConsole *serialConsole;
 
 unsigned long charge_start_time;
 
+void send_ble_info();
 
 int getSOC()
 {
@@ -80,7 +82,7 @@ void canRead()
 
       pv_current = (((float)buf[2] * 256.0) + ((float)buf[3])) / 10.0; // highByte/lowByte + offset
       pv_voltage = (((float)buf[0] * 256.0) + ((float)buf[1])) / 10.0; // highByte/lowByte + offset
-      
+
       //Logger::logIncomingMsg(receiveId, ext, length, pv_voltage, pv_current);
 
       switch (buf[4])
@@ -144,7 +146,7 @@ void canWrite()
 void setup()
 {
   Serial.begin(SERIAL_SPEED);
-  
+
   //serialConsole = new SerialConsole();
   led = new Led(GREEN_PIN, ORANGE_PIN, RED_PIN);
   led->setup();
@@ -172,7 +174,7 @@ void send_ble_info(){
 void loop()
 {
   timer.run();
-  
+
 	serialConsole->loop();
   led->loop(error_state, getSOC());
   canRead();
