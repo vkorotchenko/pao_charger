@@ -63,7 +63,7 @@ PINS
 #define CONFIG_BROADCAST_FRAME1_DEFAULT  0x18FFA0E5UL
 #define CONFIG_BROADCAST_FRAME2_DEFAULT  0x18FFA1E5UL
 #define CONFIG_SET_DEFAULT               0x18FF60F4UL
-#define config_broadcast_interval        5000
+#define config_broadcast_interval        1000
 
 // Config set command IDs
 #define CAN_CMD_SET_MAX_TIME    0x01  // value = seconds (uint16)
