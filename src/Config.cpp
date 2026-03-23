@@ -26,7 +26,7 @@ int Config::getCanSpeed()
 
 float Config::getTargetPercentage()
 {
-    return TARGET_PERCENTAGE;
+    return Config::getValueFromEEPROM((int)(TARGET_PERCENTAGE * 1000), EEPROM_TARGET_PERCENTAGE) / 1000.0f;
 }
 
 int Config::getMaxChargeTime()
@@ -34,13 +34,23 @@ int Config::getMaxChargeTime()
     return Config::getValueFromEEPROM(MAX_CHARGE_TIME, EEPROM_MAX_CHARGE_TIME);
 }
 
-int Config::getValueFromEEPROM(int def,int addr ) {
-    int target = def;
-    // target = EEPROM.read(addr);
-    // if ( target == DEFAULT_EEPROM_VAL) {
-    //     return def;
-    // }
-    return def;
+int Config::getValueFromEEPROM(int def, int addr) {
+    if (!EEPROM.isValid()) return def;
+    uint8_t hi = EEPROM.read(addr);
+    uint8_t lo = EEPROM.read(addr + 1);
+    int val = ((int)hi << 8) | lo;
+    if (val == (int)DEFAULT_EEPROM_VAL) return def;
+    return val;
+}
+
+unsigned long Config::getULFromEEPROM(unsigned long def, int addr) {
+    if (!EEPROM.isValid()) return def;
+    unsigned long val = ((unsigned long)EEPROM.read(addr)     << 24)
+                      | ((unsigned long)EEPROM.read(addr + 1) << 16)
+                      | ((unsigned long)EEPROM.read(addr + 2) <<  8)
+                      |  (unsigned long)EEPROM.read(addr + 3);
+    if (val == 0xFFFFFFFFUL) return def;
+    return val;
 }
 
 int Config::getTargetVoltage() {
@@ -59,24 +69,80 @@ void Config::printAllValues()
 
 void Config::setNominalVoltage(int newValue)
 {
-    EEPROM.update(EEPROM_NOMINAL_VOLTAGE, newValue);
+    if (Config::getNominalVoltage() == newValue) return;
+    EEPROM.update(EEPROM_NOMINAL_VOLTAGE,     (uint8_t)(newValue >> 8));
+    EEPROM.update(EEPROM_NOMINAL_VOLTAGE + 1, (uint8_t)(newValue & 0xFF));
+    EEPROM.commit();
 }
+
 void Config::setMaxCurrent(int newValue)
 {
-    EEPROM.update(EEPROM_MAX_AMPS, newValue);
+    if (Config::getMaxCurrent() == newValue) return;
+    EEPROM.update(EEPROM_MAX_AMPS,     (uint8_t)(newValue >> 8));
+    EEPROM.update(EEPROM_MAX_AMPS + 1, (uint8_t)(newValue & 0xFF));
+    EEPROM.commit();
 }
 
 void Config::setCanSpeed(int newValue)
 {
-    EEPROM.update(EEPROM_CAN_SPEED, newValue);
+    if (Config::getCanSpeed() == newValue) return;
+    EEPROM.update(EEPROM_CAN_SPEED,     (uint8_t)(newValue >> 8));
+    EEPROM.update(EEPROM_CAN_SPEED + 1, (uint8_t)(newValue & 0xFF));
+    EEPROM.commit();
 }
 
 void Config::setTargetPercentage(float newValue)
 {
-    EEPROM.update(EEPROM_TARGET_PERCENTAGE, newValue);
+    int stored = (int)(newValue * 1000);
+    if ((int)(Config::getTargetPercentage() * 1000) == stored) return;
+    EEPROM.update(EEPROM_TARGET_PERCENTAGE,     (uint8_t)(stored >> 8));
+    EEPROM.update(EEPROM_TARGET_PERCENTAGE + 1, (uint8_t)(stored & 0xFF));
+    EEPROM.commit();
 }
 
 void Config::setMaxChargeTime(int newValue)
 {
-    EEPROM.update(EEPROM_MAX_CHARGE_TIME, newValue);
+    if (Config::getMaxChargeTime() == newValue) return;
+    EEPROM.update(EEPROM_MAX_CHARGE_TIME,     (uint8_t)(newValue >> 8));
+    EEPROM.update(EEPROM_MAX_CHARGE_TIME + 1, (uint8_t)(newValue & 0xFF));
+    EEPROM.commit();
+}
+
+unsigned long Config::getConfigBroadcast1Id() {
+    return Config::getULFromEEPROM(CONFIG_BROADCAST_FRAME1_DEFAULT, EEPROM_CONFIG_BROADCAST1_ID);
+}
+
+unsigned long Config::getConfigBroadcast2Id() {
+    return Config::getULFromEEPROM(CONFIG_BROADCAST_FRAME2_DEFAULT, EEPROM_CONFIG_BROADCAST2_ID);
+}
+
+unsigned long Config::getConfigSetId() {
+    return Config::getULFromEEPROM(CONFIG_SET_DEFAULT, EEPROM_CONFIG_SET_ID);
+}
+
+void Config::setConfigBroadcast1Id(unsigned long newId) {
+    if (Config::getConfigBroadcast1Id() == newId) return;
+    EEPROM.update(EEPROM_CONFIG_BROADCAST1_ID,     (uint8_t)(newId >> 24));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST1_ID + 1, (uint8_t)(newId >> 16));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST1_ID + 2, (uint8_t)(newId >>  8));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST1_ID + 3, (uint8_t)(newId      ));
+    EEPROM.commit();
+}
+
+void Config::setConfigBroadcast2Id(unsigned long newId) {
+    if (Config::getConfigBroadcast2Id() == newId) return;
+    EEPROM.update(EEPROM_CONFIG_BROADCAST2_ID,     (uint8_t)(newId >> 24));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST2_ID + 1, (uint8_t)(newId >> 16));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST2_ID + 2, (uint8_t)(newId >>  8));
+    EEPROM.update(EEPROM_CONFIG_BROADCAST2_ID + 3, (uint8_t)(newId      ));
+    EEPROM.commit();
+}
+
+void Config::setConfigSetId(unsigned long newId) {
+    if (Config::getConfigSetId() == newId) return;
+    EEPROM.update(EEPROM_CONFIG_SET_ID,     (uint8_t)(newId >> 24));
+    EEPROM.update(EEPROM_CONFIG_SET_ID + 1, (uint8_t)(newId >> 16));
+    EEPROM.update(EEPROM_CONFIG_SET_ID + 2, (uint8_t)(newId >>  8));
+    EEPROM.update(EEPROM_CONFIG_SET_ID + 3, (uint8_t)(newId      ));
+    EEPROM.commit();
 }

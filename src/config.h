@@ -52,6 +52,23 @@ PINS
 #define EEPROM_MAX_AMPS 16
 #define EEPROM_MAX_CHARGE_TIME 18
 #define EEPROM_TARGET_PERCENTAGE 20
+// CAN ID EEPROM addresses (4 bytes each, 32-bit IDs)
+#define EEPROM_CONFIG_BROADCAST1_ID 22
+#define EEPROM_CONFIG_BROADCAST2_ID 26
+#define EEPROM_CONFIG_SET_ID        30
+
+/*
+    CAN CONFIG BROADCAST / SET IDs (runtime configurable, stored in EEPROM)
+*/
+#define CONFIG_BROADCAST_FRAME1_DEFAULT  0x18FFA0E5UL
+#define CONFIG_BROADCAST_FRAME2_DEFAULT  0x18FFA1E5UL
+#define CONFIG_SET_DEFAULT               0x18FF60F4UL
+#define config_broadcast_interval        5000
+
+// Config set command IDs
+#define CAN_CMD_SET_MAX_TIME    0x01  // value = seconds (uint16)
+#define CAN_CMD_SET_TARGET_PCT  0x02  // value = percentage * 1000 (uint16, e.g. 950 = 95.0%)
+#define CAN_CMD_SET_TARGET_AMPS 0x03  // value = 1/10th A (uint16)
 
 #include <FlashAsEEPROM.h>
 #include "Logger.h"
@@ -75,9 +92,17 @@ public:
     static void setTargetPercentage(float newValue);
     static void setMaxChargeTime(int newValue);
 
+    static unsigned long getConfigBroadcast1Id();
+    static unsigned long getConfigBroadcast2Id();
+    static unsigned long getConfigSetId();
+    static void setConfigBroadcast1Id(unsigned long newId);
+    static void setConfigBroadcast2Id(unsigned long newId);
+    static void setConfigSetId(unsigned long newId);
+
 private:
-    
-    static int getValueFromEEPROM(int def,int addr);
+
+    static int getValueFromEEPROM(int def, int addr);
+    static unsigned long getULFromEEPROM(unsigned long def, int addr);
 };
 
 #endif /* CONFIG_H_ */
