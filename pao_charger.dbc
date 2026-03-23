@@ -1,0 +1,153 @@
+VERSION ""
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	BA_SGTYPE_
+	BA_SGTYPE_DEF_
+	BA_DEFREL_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEFSGTYPE_
+	MLTPX_
+	DEFINE_DEF_
+	TEXT_DEF_
+	ENVVAR_DATA_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: Controller Charger
+
+/* ============================================================
+ * CAN IDs (all extended 29-bit frames):
+ *   0x18FF50E5  Controller → Charger  (TCC control command)
+ *   0x1806E5F4  Charger    → Controller  (TCC status)
+ *   0x18FFA0E5  Controller → Broadcast   (config frame 1, 0.2 Hz)
+ *   0x18FFA1E5  Controller → Broadcast   (config frame 2, 0.2 Hz)
+ *   0x18FF60F4  External   → Controller  (runtime config set command)
+ *
+ * DBC extended-frame IDs = CAN_ID | 0x80000000
+ * ============================================================ */
+
+/* ------------------------------------------------------------------
+ * TCC_Control  0x18FF50E5  →  decimal 2566869221
+ * Sent by Controller to Charger at 1 Hz
+ * ------------------------------------------------------------------ */
+BO_ 2566869221 TCC_Control: 8 Controller
+ SG_ TargetVoltage     : 7|16@0+  (0.1,0)   [0|6553.5]  "V"  Charger
+ SG_ MaxCurrent        : 23|16@0+ (0.1,0)   [0|6553.5]  "A"  Charger
+ SG_ EnableBit         : 32|1@1+  (1,0)     [0|1]       ""   Charger
+
+/* ------------------------------------------------------------------
+ * TCC_Status  0x1806E5F4  →  decimal 2550588916
+ * Sent by Charger to Controller (response to TCC_Control)
+ * ------------------------------------------------------------------ */
+BO_ 2550588916 TCC_Status: 8 Charger
+ SG_ OutputVoltage     : 7|16@0+  (0.1,0)   [0|6553.5]  "V"  Controller
+ SG_ OutputCurrent     : 23|16@0+ (0.1,0)   [0|6553.5]  "A"  Controller
+ SG_ HardwareFailure   : 32|1@1+  (1,0)     [0|1]       ""   Controller
+ SG_ Overheating       : 33|1@1+  (1,0)     [0|1]       ""   Controller
+ SG_ InputVoltageWrong : 34|1@1+  (1,0)     [0|1]       ""   Controller
+ SG_ ChargerOff        : 35|1@1+  (1,0)     [0|1]       ""   Controller
+ SG_ CommTimeout       : 36|1@1+  (1,0)     [0|1]       ""   Controller
+
+/* ------------------------------------------------------------------
+ * Config_Frame1  0x18FFA0E5  →  decimal 2566889701
+ * Broadcast by Controller at 0.2 Hz
+ * ------------------------------------------------------------------ */
+BO_ 2566889701 Config_Frame1: 8 Controller
+ SG_ MaxCurrent_A      : 7|16@0+  (0.1,0)   [0|6553.5]  "A"  Vector__XXX
+ SG_ MaxCurrent_B      : 23|16@0+ (0.1,0)   [0|6553.5]  "A"  Vector__XXX
+ SG_ NominalVoltage    : 39|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
+ SG_ TargetVoltage_Cfg : 55|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
+
+/* ------------------------------------------------------------------
+ * Config_Frame2  0x18FFA1E5  →  decimal 2566889957
+ * Broadcast by Controller at 0.2 Hz
+ * ------------------------------------------------------------------ */
+BO_ 2566889957 Config_Frame2: 8 Controller
+ SG_ TargetPercentage  : 0|8@1+   (1,0)     [0|100]     "%"  Vector__XXX
+ SG_ ErrorState        : 8|8@1+   (1,0)     [0|255]     ""   Vector__XXX
+ SG_ ChargingTime      : 23|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
+ SG_ MaxChargeTime     : 39|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
+
+/* ------------------------------------------------------------------
+ * Config_SetCommand  0x18FF60F4  →  decimal 2566873332
+ * Received by Controller from external CAN source (BMS, dash, etc.)
+ * ------------------------------------------------------------------ */
+BO_ 2566873332 Config_SetCommand: 8 Vector__XXX
+ SG_ CommandID : 0|8@1+   (1,0)  [0|255]    ""  Controller
+ SG_ Value     : 23|16@0+ (1,0)  [0|65535]  ""  Controller
+
+/* ============================================================
+ * Message comments
+ * ============================================================ */
+CM_ BU_ Controller "PAO Charger Controller (Adafruit Feather M0 / SAMD21)";
+CM_ BU_ Charger    "TCC EV Charger";
+
+CM_ BO_ 2566869221 "Charging command from controller to TCC charger. CAN ID 0x18FF50E5 (ext). Tx rate: 1 Hz.";
+CM_ BO_ 2550588916 "Charger status from TCC charger to controller. CAN ID 0x1806E5F4 (ext).";
+CM_ BO_ 2566889701 "Configuration broadcast frame 1. CAN ID 0x18FFA0E5 (ext). Tx rate: 0.2 Hz.";
+CM_ BO_ 2566889957 "Configuration broadcast frame 2. CAN ID 0x18FFA1E5 (ext). Tx rate: 0.2 Hz.";
+CM_ BO_ 2566873332 "Runtime configuration command. CAN ID 0x18FF60F4 (ext). Received from external source.";
+
+CM_ SG_ 2566869221 TargetVoltage     "Target charging voltage. Physical = raw * 0.1 V. Default: 320.0 V (raw 3200).";
+CM_ SG_ 2566869221 MaxCurrent        "Maximum charging current. Physical = raw * 0.1 A. Default: 20.0 A (raw 200).";
+CM_ SG_ 2566869221 EnableBit         "0 = charging enabled, 1 = stop charging.";
+CM_ SG_ 2550588916 OutputVoltage     "Charger output voltage. Physical = raw * 0.1 V.";
+CM_ SG_ 2550588916 OutputCurrent     "Charger output current. Physical = raw * 0.1 A.";
+CM_ SG_ 2550588916 HardwareFailure   "1 = hardware malfunction detected.";
+CM_ SG_ 2550588916 Overheating       "1 = charger temperature exceeded threshold.";
+CM_ SG_ 2550588916 InputVoltageWrong "1 = input voltage out of acceptable range.";
+CM_ SG_ 2550588916 ChargerOff        "1 = charger off (reverse polarity protection triggered).";
+CM_ SG_ 2550588916 CommTimeout       "1 = CAN communication timeout.";
+CM_ SG_ 2566889701 MaxCurrent_A      "Maximum charger current (copy 1 of 2). Physical = raw * 0.1 A.";
+CM_ SG_ 2566889701 MaxCurrent_B      "Maximum charger current (copy 2 of 2). Physical = raw * 0.1 A.";
+CM_ SG_ 2566889701 NominalVoltage    "Nominal battery pack voltage. Physical = raw * 0.1 V. Default: 320.0 V (raw 3200).";
+CM_ SG_ 2566889701 TargetVoltage_Cfg "Target charging voltage config. Physical = raw * 0.1 V.";
+CM_ SG_ 2566889957 TargetPercentage  "Charge target as integer percent 0-100. Stored as getTargetPercentage()*100.";
+CM_ SG_ 2566889957 ErrorState        "Current error bitfield (same bit layout as TCC_Status byte 4).";
+CM_ SG_ 2566889957 ChargingTime      "Elapsed charging session time in seconds.";
+CM_ SG_ 2566889957 MaxChargeTime     "Maximum allowed charge duration in seconds. Default: 43200 (12 h).";
+CM_ SG_ 2566873332 CommandID         "0x01=SetMaxChargeTime, 0x02=SetTargetPercentage, 0x03=SetMaxCurrent.";
+CM_ SG_ 2566873332 Value             "Command parameter. Scaling depends on CommandID (see VAL_ table and comments).";
+
+/* ============================================================
+ * Enumerated signal values
+ * ============================================================ */
+VAL_ 2566869221 EnableBit
+  0 "Enable"
+  1 "Stop";
+
+VAL_ 2550588916 HardwareFailure
+  0 "OK"
+  1 "Fault";
+
+VAL_ 2550588916 Overheating
+  0 "OK"
+  1 "Overheat";
+
+VAL_ 2550588916 InputVoltageWrong
+  0 "OK"
+  1 "Fault";
+
+VAL_ 2550588916 ChargerOff
+  0 "Running"
+  1 "Off";
+
+VAL_ 2550588916 CommTimeout
+  0 "OK"
+  1 "Timeout";
+
+VAL_ 2566873332 CommandID
+  1 "SetMaxChargeTime"      /* Value unit: seconds (1:1)        */
+  2 "SetTargetPercentage"   /* Value unit: permille (divide/1000 for fraction, e.g. 950 = 95.0%) */
+  3 "SetMaxCurrent";        /* Value unit: 1/10 A (same as MaxCurrent signal)  */
