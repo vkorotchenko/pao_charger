@@ -155,10 +155,11 @@ void canWriteConfig()
   int maxCurrent = Config::getMaxCurrent();
   int nomVoltage = Config::getNominalVoltage();
   int tgtVoltage = Config::getTargetVoltage();
+  int maxMult    = (int)(Config::getNominalMaxMultiplier() * 100.0f);
 
   unsigned char frame1[8] = {
     highByte(maxCurrent), lowByte(maxCurrent),
-    highByte(maxCurrent), lowByte(maxCurrent),
+    highByte(maxMult),    lowByte(maxMult),
     highByte(nomVoltage), lowByte(nomVoltage),
     highByte(tgtVoltage), lowByte(tgtVoltage)
   };
@@ -166,12 +167,14 @@ void canWriteConfig()
 
   uint16_t chgTime = (uint16_t)running_time;
   uint16_t maxTime = (uint16_t)Config::getMaxChargeTime();
+  uint8_t  minMult = (uint8_t)(Config::getNominalMinMultiplier() * 100.0f);
+  uint8_t  autoNom = Config::getAutoNominalFromCan() ? 1 : 0;
   unsigned char frame2[8] = {
     (uint8_t)(Config::getTargetPercentage() * 100),
     (uint8_t)error_state,
     highByte(chgTime), lowByte(chgTime),
     highByte(maxTime), lowByte(maxTime),
-    0x00, 0x00
+    minMult, autoNom
   };
   CAN.MCP_CAN::sendMsgBuf(Config::getConfigBroadcast2Id(), ext, length, frame2);
 }
