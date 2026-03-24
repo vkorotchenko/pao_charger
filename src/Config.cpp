@@ -2,12 +2,52 @@
 
 float Config::getMaxVoltage()
 {
-    return Config::getNominalVoltage() * NOMINAL_MAX_MULTIPLIER;
+    return Config::getNominalVoltage() * Config::getNominalMaxMultiplier();
 }
 
 float Config::getMinVoltage()
 {
-    return Config::getNominalVoltage() * NOMINAL_MIN_MULTIPLIER;
+    return Config::getNominalVoltage() * Config::getNominalMinMultiplier();
+}
+
+float Config::getNominalMaxMultiplier()
+{
+    return Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) / 100.0f;
+}
+
+float Config::getNominalMinMultiplier()
+{
+    return Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT) / 100.0f;
+}
+
+bool Config::getAutoNominalFromCan()
+{
+    return Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) != 0;
+}
+
+void Config::setNominalMaxMultiplier(int valueX100)
+{
+    if (Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) == valueX100) return;
+    EEPROM.update(EEPROM_NOMINAL_MAX_MULT,     (uint8_t)(valueX100 >> 8));
+    EEPROM.update(EEPROM_NOMINAL_MAX_MULT + 1, (uint8_t)(valueX100 & 0xFF));
+    EEPROM.commit();
+}
+
+void Config::setNominalMinMultiplier(int valueX100)
+{
+    if (Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT) == valueX100) return;
+    EEPROM.update(EEPROM_NOMINAL_MIN_MULT,     (uint8_t)(valueX100 >> 8));
+    EEPROM.update(EEPROM_NOMINAL_MIN_MULT + 1, (uint8_t)(valueX100 & 0xFF));
+    EEPROM.commit();
+}
+
+void Config::setAutoNominalFromCan(bool enable)
+{
+    int val = enable ? 1 : 0;
+    if (Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) == val) return;
+    EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN,     (uint8_t)(val >> 8));
+    EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN + 1, (uint8_t)(val & 0xFF));
+    EEPROM.commit();
 }
 
 int Config::getNominalVoltage(){

@@ -85,6 +85,22 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       Config::setMaxCurrent((int)val);
       Logger::log("CAN config: target amps -> %d (1/10th A)", (int)val);
       break;
+    case CAN_CMD_SET_NOMINAL_VOLTAGE:
+      Config::setNominalVoltage((int)val);
+      Logger::log("CAN config: nominal voltage -> %d (1/10th V)", (int)val);
+      break;
+    case CAN_CMD_SET_NOMINAL_MAX_MULT:
+      Config::setNominalMaxMultiplier((int)val);
+      Logger::log("CAN config: nominal max multiplier -> %d/100", (int)val);
+      break;
+    case CAN_CMD_SET_NOMINAL_MIN_MULT:
+      Config::setNominalMinMultiplier((int)val);
+      Logger::log("CAN config: nominal min multiplier -> %d/100", (int)val);
+      break;
+    case CAN_CMD_SET_AUTO_NOMINAL:
+      Config::setAutoNominalFromCan(val != 0);
+      Logger::log("CAN config: auto nominal from CAN -> %d", (int)val);
+      break;
     default:
       Logger::log("CAN config: unknown cmd %d", (int)cmd);
       break;
@@ -123,6 +139,13 @@ void canRead()
     else if (receiveId == Config::getConfigSetId())
     {
       handleConfigSetCommand(buf, len);
+    }
+    else if (receiveId == DMOC_BAT_VOLTAGE_ID && Config::getAutoNominalFromCan())
+    {
+      // Bat_Voltage: bytes 0-1, big-endian, 1/10th V (DMOC 0x650)
+      uint16_t rawVoltage = ((uint16_t)buf[0] << 8) | buf[1];
+      Config::setNominalVoltage((int)rawVoltage);
+      Logger::log("Auto nominal: set from DMOC 0x650 -> %d (1/10th V)", (int)rawVoltage);
     }
   }
 }

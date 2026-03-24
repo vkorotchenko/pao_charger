@@ -26,10 +26,13 @@ PINS
 #define ble_interval 1000
 #define led_reset_interval 1000
 
-#define FULL_CHARGE_MULTIPLIER 1.046875
-#define MID_CHARGE_MULTIPLIER 1.040625
-#define NOMINAL_MIN_MULTIPLIER 0.78125
-#define NOMINAL_MAX_MULTIPLIER 1.140625
+#define FULL_CHARGE_MULTIPLIER 1.05
+#define MID_CHARGE_MULTIPLIER 1.04
+
+// Stored in EEPROM as int*100 (e.g. 114 = 1.14); use Config::getNominalMax/MinMultiplier()
+#define NOMINAL_MAX_MULT_DEFAULT 114
+#define NOMINAL_MIN_MULT_DEFAULT 81
+#define AUTO_NOMINAL_FROM_CAN_DEFAULT 0
 
 #define DEFAULT_EEPROM_VAL 0xFFFF
 
@@ -53,9 +56,13 @@ PINS
 #define EEPROM_MAX_CHARGE_TIME 18
 #define EEPROM_TARGET_PERCENTAGE 20
 // CAN ID EEPROM addresses (4 bytes each, 32-bit IDs)
-#define EEPROM_CONFIG_BROADCAST1_ID 22
-#define EEPROM_CONFIG_BROADCAST2_ID 26
-#define EEPROM_CONFIG_SET_ID        30
+#define EEPROM_CONFIG_BROADCAST1_ID  22
+#define EEPROM_CONFIG_BROADCAST2_ID  26
+#define EEPROM_CONFIG_SET_ID         30
+// Multiplier + auto-nominal addresses (2 bytes each)
+#define EEPROM_NOMINAL_MAX_MULT      34
+#define EEPROM_NOMINAL_MIN_MULT      36
+#define EEPROM_AUTO_NOMINAL_FROM_CAN 38
 
 /*
     CAN CONFIG BROADCAST / SET IDs (runtime configurable, stored in EEPROM)
@@ -65,10 +72,17 @@ PINS
 #define CONFIG_SET_DEFAULT               0x18FF60F4UL
 #define config_broadcast_interval        1000
 
+// DMOC electrical status frame (Bat_Voltage source for auto-nominal)
+#define DMOC_BAT_VOLTAGE_ID 0x650
+
 // Config set command IDs
-#define CAN_CMD_SET_MAX_TIME    0x01  // value = seconds (uint16)
-#define CAN_CMD_SET_TARGET_PCT  0x02  // value = percentage * 1000 (uint16, e.g. 950 = 95.0%)
-#define CAN_CMD_SET_TARGET_AMPS 0x03  // value = 1/10th A (uint16)
+#define CAN_CMD_SET_MAX_TIME         0x01  // value = seconds (uint16)
+#define CAN_CMD_SET_TARGET_PCT       0x02  // value = percentage * 1000 (uint16, e.g. 950 = 95.0%)
+#define CAN_CMD_SET_TARGET_AMPS      0x03  // value = 1/10th A (uint16)
+#define CAN_CMD_SET_NOMINAL_VOLTAGE  0x04  // value = 1/10th V (uint16)
+#define CAN_CMD_SET_NOMINAL_MAX_MULT 0x05  // value = multiplier * 100 (uint16, e.g. 114 = 1.14)
+#define CAN_CMD_SET_NOMINAL_MIN_MULT 0x06  // value = multiplier * 100 (uint16, e.g. 81 = 0.81)
+#define CAN_CMD_SET_AUTO_NOMINAL     0x07  // value = 0 (off) or 1 (on)
 
 #include <FlashAsEEPROM.h>
 #include "Logger.h"
@@ -86,11 +100,18 @@ public:
     static int getTargetVoltage();
 
     static void printAllValues();
+    static float getNominalMaxMultiplier();
+    static float getNominalMinMultiplier();
+    static bool getAutoNominalFromCan();
+
     static void setNominalVoltage(int newValue);
     static void setMaxCurrent(int newValue);
     static void setCanSpeed(int newValue);
     static void setTargetPercentage(float newValue);
     static void setMaxChargeTime(int newValue);
+    static void setNominalMaxMultiplier(int valueX100);
+    static void setNominalMinMultiplier(int valueX100);
+    static void setAutoNominalFromCan(bool enable);
 
     static unsigned long getConfigBroadcast1Id();
     static unsigned long getConfigBroadcast2Id();
