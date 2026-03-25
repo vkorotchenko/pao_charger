@@ -26,4 +26,8 @@ over half, under under nominal voltage: red high, amber bliking
 over nominal, under 90%: red, amber high. green blinking
 over 98%: all high
 
+# Schematic
+
+![Schematic](res/pao_charger_schematic.png)
+
 # Wiring
