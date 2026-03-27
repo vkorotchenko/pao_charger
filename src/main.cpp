@@ -228,7 +228,7 @@ void setup()
 }
 
 void send_ble_info(){
-  bt->loop(Config::getTargetVoltage(), Config::getMaxCurrent(), round(pv_voltage * 10), round(pv_current * 10), running_time );
+  bt->loop(Config::getTargetVoltage(), Config::getMaxCurrent(), round(pv_voltage * 10), round(pv_current * 10), running_time, isCharging, getSOC(), error_state);
 }
 
 void loop()

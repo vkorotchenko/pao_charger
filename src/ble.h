@@ -13,10 +13,12 @@
   #include <SoftwareSerial.h>
 #endif
 
+extern int32_t minMultCharId;
+
 class Ble {
 public:
     void setup();
-    void loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time);
+    void loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state);
 private:
 };
 

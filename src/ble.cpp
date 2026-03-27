@@ -14,6 +14,16 @@ int32_t cfgAmpId;
 int32_t cfgPctId;
 int32_t cfgMaxTimeId;
 
+// Status characteristics (read + notify)
+int32_t chargeStateCharId;
+int32_t socCharId;
+int32_t errorCharId;
+
+// Battery info characteristics (read + notify)
+int32_t nominalVoltCharId;
+int32_t maxMultCharId;
+int32_t minMultCharId;
+
 void bleConfigCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     int val = ((int)data[0] << 8) | (int)data[1];
@@ -107,6 +117,24 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
 
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF10,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &chargeStateCharId);
+  if (!success) Logger::log("Could not add charge state char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF11,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &socCharId);
+  if (!success) Logger::log("Could not add soc char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &errorCharId);
+  if (!success) Logger::log("Could not add error char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &nominalVoltCharId);
+  if (!success) Logger::log("Could not add nominal volt char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
+  if (!success) Logger::log("Could not add max mult char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
+  if (!success) Logger::log("Could not add min mult char");
+
   ble.setBleGattRxCallback(cfgAmpId,     bleConfigCallback);
   ble.setBleGattRxCallback(cfgPctId,     bleConfigCallback);
   ble.setBleGattRxCallback(cfgMaxTimeId, bleConfigCallback);
@@ -118,7 +146,7 @@ void Ble::setup() {
   ble.reset();
 }
 
-void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time){
+void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
   ble.update(10);  // process incoming BLE writes (fires bleConfigCallback if a central wrote a config char)
 
   ble.print( F("AT+GATTCHAR=") );
@@ -149,5 +177,58 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print( rTime );
   ble.print( F(",") );
   ble.println(running_time, HEX);
+  ble.waitForOK();
+
+  // Charge state: 0=NOT_CHARGING, 1=CHARGING, 2=COMPLETE
+  uint8_t chargeStateVal = 0;
+  if (isCharging) {
+    chargeStateVal = (soc >= 4) ? 2 : 1;
+  }
+
+  // SOC percent: rough 25% steps from getSOC() levels 0-4
+  uint8_t socPct = (uint8_t)min(100, soc * 25);
+
+  // Error state: low byte of error_state
+  uint8_t errVal = (uint8_t)(error_state & 0xFF);
+
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( chargeStateCharId );
+  ble.print( F(",") );
+  ble.println(chargeStateVal, HEX);
+  ble.waitForOK();
+
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( socCharId );
+  ble.print( F(",") );
+  ble.println(socPct, HEX);
+  ble.waitForOK();
+
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( errorCharId );
+  ble.print( F(",") );
+  ble.println(errVal, HEX);
+  ble.waitForOK();
+
+  uint16_t nomV = (uint16_t)Config::getNominalVoltage();
+  char hexBuf[5];
+  snprintf(hexBuf, sizeof(hexBuf), "%04X", nomV);
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( nominalVoltCharId );
+  ble.print( F(",") );
+  ble.println(hexBuf);
+  ble.waitForOK();
+
+  uint8_t maxMult = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( maxMultCharId );
+  ble.print( F(",") );
+  ble.println(maxMult, HEX);
+  ble.waitForOK();
+
+  uint8_t minMult = (uint8_t)(Config::getNominalMinMultiplier() * 100);
+  ble.print( F("AT+GATTCHAR=") );
+  ble.print( minMultCharId );
+  ble.print( F(",") );
+  ble.println(minMult, HEX);
   ble.waitForOK();
 }
