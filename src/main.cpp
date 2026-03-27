@@ -235,7 +235,7 @@ void loop()
 {
   timer.run();
 
-	serialConsole->loop();
+	// serialConsole->loop();
   led->loop(error_state, getSOC());
   canRead();
 }
