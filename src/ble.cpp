@@ -9,10 +9,11 @@ int32_t cVoltId;
 int32_t cAmpId;
 int32_t rTime;
 
-// Writable config characteristics
+// Config characteristics (read + notify; written only via cfgCmdId)
 int32_t cfgAmpId;
 int32_t cfgPctId;
 int32_t cfgMaxTimeId;
+int32_t cfgCmdId;
 
 // Status characteristics (read + notify)
 int32_t chargeStateCharId;
@@ -39,19 +40,26 @@ void bleDisconnectCallback(void) {
     ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
 }
 
-void bleConfigCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
-    if (len < 2) return;
-    int val = ((int)data[0] << 8) | (int)data[1];
-
-    if (chars_id == cfgAmpId) {
-        Config::setMaxCurrent(val);
-        Logger::log("BLE config: target amps -> %d (1/10th A)", val);
-    } else if (chars_id == cfgPctId) {
-        Config::setTargetPercentage((float)val / 1000.0f);
-        Logger::log("BLE config: target pct -> %d/1000", val);
-    } else if (chars_id == cfgMaxTimeId) {
-        Config::setMaxChargeTime(val);
-        Logger::log("BLE config: max charge time -> %d s", val);
+void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
+    if (len < 4) return;
+    uint8_t  cmd = data[0];
+    uint16_t val = ((uint16_t)data[2] << 8) | data[3];
+    switch (cmd) {
+        case 1:
+            Config::setMaxCurrent((int)val);
+            Logger::log("BLE cmd: max current -> %d (1/10th A)", (int)val);
+            break;
+        case 2:
+            Config::setTargetPercentage((float)val / 1000.0f);
+            Logger::log("BLE cmd: target pct -> %d/1000", (int)val);
+            break;
+        case 3:
+            Config::setMaxChargeTime((int)val);
+            Logger::log("BLE cmd: max charge time -> %d s", (int)val);
+            break;
+        default:
+            Logger::log("BLE cmd: unknown cmd %d", (int)cmd);
+            break;
     }
 }
 
@@ -117,20 +125,23 @@ void Ble::setup() {
   int targetPct  = (int)(Config::getTargetPercentage() * 1000);
   int maxTime    = Config::getMaxChargeTime();
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
   if (!success) Logger::log("Could not add cfg amp char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (targetPct >> 8) & 0xFF, targetPct & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
   if (!success) Logger::log("Could not add cfg pct char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxTime >> 8) & 0xFF, maxTime & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF05,PROPERTIES=0x0A,MIN_LEN=4,MAX_LEN=4,VALUE=00-00-00-00"), &cfgCmdId);
+  if (!success) Logger::log("Could not add cfg cmd char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF10,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &chargeStateCharId);
   if (!success) Logger::log("Could not add charge state char");
@@ -156,9 +167,7 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMinVCharId);
   if (!success) Logger::log("Could not add abs min volt char");
 
-  ble.setBleGattRxCallback(cfgAmpId,     bleConfigCallback);
-  ble.setBleGattRxCallback(cfgPctId,     bleConfigCallback);
-  ble.setBleGattRxCallback(cfgMaxTimeId, bleConfigCallback);
+  ble.setBleGattRxCallback(cfgCmdId, bleCmdCallback);
 
   ble.setConnectCallback(bleConnectCallback);
   ble.setDisconnectCallback(bleDisconnectCallback);
