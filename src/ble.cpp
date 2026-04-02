@@ -32,6 +32,7 @@ int32_t absMaxVCharId;
 int32_t absMinVCharId;
 
 static bool bleConnected = false;
+static bool needsRestartAdv = false;
 
 void bleConnectCallback(void) {
     bleConnected = true;
@@ -41,8 +42,8 @@ void bleConnectCallback(void) {
 void bleDisconnectCallback(void) {
     if (!bleConnected) return;  // duplicate event — already handled
     bleConnected = false;
-    Logger::log("BLE disconnected, restarting advertising");
-    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+    needsRestartAdv = true;
+    Logger::log("BLE disconnected");
 }
 
 // --- Per-value write callbacks ---
@@ -229,8 +230,17 @@ void Ble::setup() {
 }
 
 void Ble::poll() {
-  ble.update(10);  // process incoming BLE writes — called every loop() iteration so writes
-                   // are applied before the next canWrite() tick, not one cycle later
+  ble.update(10);  // process incoming BLE writes and connection events first
+  // Defer AT+GAPSTARTADV until after ble.update() so any queued CONNECT event
+  // is processed before we restart advertising. If mobile reconnected quickly,
+  // bleConnectCallback will have set bleConnected=true above — skip the restart.
+  if (needsRestartAdv && !bleConnected) {
+    needsRestartAdv = false;
+    Logger::log("BLE restarting advertising");
+    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+  } else if (needsRestartAdv) {
+    needsRestartAdv = false;  // mobile already reconnected — no restart needed
+  }
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
