@@ -1,0 +1,551 @@
+mobile logs:                       V  Sent Transition (#5832) createdAt=04-02 15:09:51.024 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=6806 effectiveUid=10360 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.paoconsole/.MainActivity } baseActivity=ComponentInfo{com.paoconsole/com.paoconsole.MainActivity} topActivity=ComponentInfo{com.paoconsole/com.paoconsole.MainActivity} origActivity=null realActivity=ComponentInfo{com.paoconsole/com.paoconsole.MainActivity} realActivityIsAppLockEnabled=false numActivities=1 lastActiveTime=597637798 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{3e019b9 Task{a94a405 #6806 type=standard A=10360:com.paoconsole}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 136 - 0, 0) topActivityInfo=ActivityInfo{351ed5f com.paoconsole.MainActivity} launchCookies=[android.os.BinderProxy@6af33ac] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false isActivityStackTransparent=false lastNonFullscreenBounds=Rect(276, 696 - 805, 1776) leafTaskBoundsFromOptions= false capturedLink=null capturedLinkTimestamp=0 requestedVisibleTypes=503 topActivityRequestOpenInBrowserEducationTimestamp=0 appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false isLeafTask= true eligibleForLetterboxEducation= false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1080, 2400) isUserFullscreenOverrideEnabled=false isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null topNonResizableActivityAspectRatio=-1.0} topActivityMainWindowFrame=null isAppBubble=false}, pipChange = null, remoteTransitionInfo = RemoteTransitionInfo { remoteTransition = android.window.IRemoteTransition$Stub$Proxy@d5f9875, debugName = QuickstepLaunch }, displayChange = null, requestedLocation = null, userChange = null, windowingLayerChange = null, fullscreenRequestChange = null, flags = 0, debugId = 5832 }
+2026-04-02 15:09:51.050  1826-1868  WindowManager           system_server                        V      info={id=5832 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+                                                                                                            {WCT{RemoteToken{3e019b9 Task{a94a405 #6806 type=standard A=10360:com.paoconsole}}} m=OPEN f=NONE leash=Surface(name=Task=6806#77028)/@0x6654cb2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1 winMode=1 userId=0},
+                                                                                                            {WCT{RemoteToken{e154166 Task{7ac0d0d #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1#44)/@0xc14909 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 taskParent=-1 winMode=1 userId=0},
+                                                                                                            {m=TO_BACK f=IS_WALLPAPER leash=Surface(name=WallpaperWindowToken{7ddbe72}#61)/@0x8976136 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0}
+                                                                                                        ]}
+2026-04-02 15:09:51.159  1826-4793  CoreBackPreview         system_server                        D  Window{80fd75e u0 com.paoconsole/com.paoconsole.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@5467555, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+2026-04-02 15:09:51.159  1826-4793  CoreBackPreview         system_server                        D  Window{80fd75e u0 com.paoconsole/com.paoconsole.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@b7e0b6a, mPriority=0, mIsAnimationCallback=true, mOverrideBehavior=0}
+2026-04-02 15:09:51.194  1826-1960  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:09:51.377  1826-1961  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:09:51.388  1826-4577  WindowManager           system_server                        I  finishDrawing of orientation change: Window{f5c1426 u0 Splash Screen com.paoconsole} 53ms
+2026-04-02 15:09:51.404  1826-1868  WindowManager           system_server                        V      info={id=5833 t=CHANGE f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+                                                                                                            {WCT{RemoteToken{3e019b9 Task{a94a405 #6806 type=standard A=10360:com.paoconsole}}} m=CHANGE f=NONE p=WCT{RemoteToken{3de1ca7 DefaultTaskDisplayArea@226193735}} leash=Surface(name=Task=6806#77028)/@0x6654cb2 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) epz=Point(2400, 1080) d=0 r=0->1:0 taskParent=-1 winMode=1 userId=0},
+                                                                                                            {WCT{RemoteToken{3de1ca7 DefaultTaskDisplayArea@226193735}} m=CHANGE f=FLAG_IS_TASK_DISPLAY_AREA p=WCT{RemoteToken{51ef623 AppZoomOut:2:14@88716482}} leash=Surface(name=DefaultTaskDisplayArea#10)/@0xc45ba10 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) epz=Point(2400, 1080) d=0 r=0->1:-1},
+                                                                                                            {WCT{RemoteToken{51ef623 AppZoomOut:2:14@88716482}} m=CHANGE f=NONE p=WCT{RemoteToken{b9ab56b WindowedMagnification:0:31@92357331}} leash=Surface(name=AppZoomOut:2:14#9)/@0x3769bdd sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) epz=Point(2400, 1080) d=0 r=0->1:-1},
+                                                                                                            {WCT{RemoteToken{b9ab56b WindowedMagnification:0:31@92357331}} m=CHANGE f=NONE p=WCT{RemoteToken{c6d472c Display{#0 state=ON size=2400x1080 ROTATION_90}}} leash=Surface(name=WindowedMagnification:0:31#3)/@0xf26dabe sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) epz=Point(2400, 1080) d=0 r=0->1:-1},
+                                                                                                            {WCT{RemoteToken{c6d472c Display{#0 state=ON size=2400x1080 ROTATION_90}}} m=CHANGE f=IS_DISPLAY leash=Surface(name=WindowedMagnification:0:31#3)/@0xf26dabe sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) epz=Point(2400, 1080) d=0 r=0->1:-1}
+                                                                                                        ]}
+2026-04-02 15:09:51.406  1826-4767  WindowManager           system_server                        I  finishDrawing of orientation change: Window{80fd75e u0 com.paoconsole/com.paoconsole.MainActivity} 72ms
+2026-04-02 15:09:51.533  1826-4793  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:09:52.655  1826-4599  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:09:52.712  1826-4793  WindowManager           system_server                        I  finishDrawing of orientation change: Window{80fd75e u0 com.paoconsole/com.paoconsole.MainActivity} 77ms
+2026-04-02 15:09:52.715  1826-1868  WindowManager           system_server                        V      info={id=5834 t=CHANGE f=0x0 trk=0 r=[0@Point(0, 0)] c=[
+                                                                                                            {WCT{RemoteToken{3e019b9 Task{a94a405 #6806 type=standard A=10360:com.paoconsole}}} m=CHANGE f=NONE p=WCT{RemoteToken{3de1ca7 DefaultTaskDisplayArea@226193735}} leash=Surface(name=Task=6806#77028)/@0x6654cb2 sb=Rect(0, 0 - 2400, 1080) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 r=1->0:0 taskParent=-1 winMode=1 userId=0},
+                                                                                                            {WCT{RemoteToken{3de1ca7 DefaultTaskDisplayArea@226193735}} m=CHANGE f=FLAG_IS_TASK_DISPLAY_AREA p=WCT{RemoteToken{51ef623 AppZoomOut:2:14@88716482}} leash=Surface(name=DefaultTaskDisplayArea#10)/@0xc45ba10 sb=Rect(0, 0 - 2400, 1080) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 r=1->0:-1},
+                                                                                                            {WCT{RemoteToken{51ef623 AppZoomOut:2:14@88716482}} m=CHANGE f=NONE p=WCT{RemoteToken{b9ab56b WindowedMagnification:0:31@92357331}} leash=Surface(name=AppZoomOut:2:14#9)/@0x3769bdd sb=Rect(0, 0 - 2400, 1080) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 r=1->0:-1},
+                                                                                                            {WCT{RemoteToken{b9ab56b WindowedMagnification:0:31@92357331}} m=CHANGE f=NONE p=WCT{RemoteToken{c6d472c Display{#0 state=ON size=1080x2400 ROTATION_0}}} leash=Surface(name=WindowedMagnification:0:31#3)/@0xf26dabe sb=Rect(0, 0 - 2400, 1080) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 r=1->0:-1},
+                                                                                                            {WCT{RemoteToken{c6d472c Display{#0 state=ON size=1080x2400 ROTATION_0}}} m=CHANGE f=IS_DISPLAY leash=Surface(name=WindowedMagnification:0:31#3)/@0xf26dabe sb=Rect(0, 0 - 2400, 1080) eb=Rect(0, 0 - 1080, 2400) epz=Point(1080, 2400) d=0 r=1->0:-1}
+                                                                                                        ]}
+2026-04-02 15:09:52.843  1826-4767  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:10:11.434  3540-3540  ActivityThread          com...android.cellbroadcastreceiver  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:11.436  3540-3540  ActivityThread          com...android.cellbroadcastreceiver  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.061  5276-5276  ActivityThread          com.google.android.turboadapter      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.062  5276-5276  ActivityThread          com.google.android.turboadapter      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.125  2970-2970  ActivityThread          com.google.android.flipendo          D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.125  2970-2970  ActivityThread          com.google.android.flipendo          D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.137 15618-15618 ActivityThread          com....android.apps.pixel.dcservice  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.143 15618-15618 ActivityThread          com....android.apps.pixel.dcservice  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.454  8729-8729  ActivityThread          com....pixelsystemservice:ephemeral  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.456  8729-8729  ActivityThread          com....pixelsystemservice:ephemeral  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.491 25184-25184 ActivityThread          com.google.android.gms.unstable      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.491 16320-16320 ActivityThread          com.google.android.gms.ui            D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.493 25184-25184 ActivityThread          com.google.android.gms.unstable      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.505 23857-23857 ActivityThread          com.google.android.gms:snet          D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.506 23857-23857 ActivityThread          com.google.android.gms:snet          D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.507 16320-16320 ActivityThread          com.google.android.gms.ui            D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.551  5973-5973  ActivityThread          com...id.projection.gearhead:shared  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.553  5973-5973  ActivityThread          com...id.projection.gearhead:shared  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.558 25245-25245 ActivityThread          com....projection.gearhead:provider  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.559  6619-6619  ActivityThread          com...rojection.gearhead:projection  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.562 25245-25245 ActivityThread          com....projection.gearhead:provider  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.562  6619-6619  ActivityThread          com...rojection.gearhead:projection  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.574 30898-30898 ActivityThread          com...ps.pixel.dcservice:projection  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.575 30898-30898 ActivityThread          com...ps.pixel.dcservice:projection  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.629 11247-11247 ActivityThread          com.spotify.music                    D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.629 11247-11247 ActivityThread          com.spotify.music                    D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.784 12911-12911 ActivityThread          com...s.wearables.maestro.companion  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:17.786 12911-12911 ActivityThread          com...s.wearables.maestro.companion  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+--------- beginning of main
+2026-04-02 15:10:20.248  2850-2953  BluetoothUtils          com.android.systemui                 D  Bluetooth device EPAO SK doesn't have exclusive manager
+2026-04-02 15:10:20.252  2850-2953  BluetoothUtils          com.android.systemui                 D  Bluetooth device EPAO SK doesn't have exclusive manager
+2026-04-02 15:10:20.253  2850-2958  BluetoothUtils          com.android.systemui                 D  Bluetooth device EPAO SK doesn't have exclusive manager
+2026-04-02 15:10:20.257  2850-2958  BluetoothUtils          com.android.systemui                 D  Bluetooth device EPAO SK doesn't have exclusive manager
+2026-04-02 15:10:20.299  1826-2412  ImeTracker              system_server                        I  com.paoconsole:a34e5e27: onRequestHide at ORIGIN_SERVER reason HIDE_SAME_WINDOW_FOCUSED_WITHOUT_EDITOR fromUser false userId 0 displayId 0
+2026-04-02 15:10:20.299 30255-30255 ImeTracker              com.paoconsole                       I  com.paoconsole:a34e5e27: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+2026-04-02 15:10:20.301 12740-12740 GoogleInpu...hodService com...gle.android.inputmethod.latin  I  GoogleInputMethodService.onStartInput():1434 onStartInput(EditorInfo{EditorInfo{packageName=com.paoconsole, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+2026-04-02 15:10:20.302  1826-3230  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:10:30.450 30255-30278 ReactNativeJS           com.paoconsole                       I  'Unified scan: found charger device', 'Pao Charger', 'C7:B4:84:DA:DD:6F'
+2026-04-02 15:10:30.544 30430-30482 gatt_api                com.google.android.bluetooth         I  system/stack/gatt/gatt_api.cc:1385 GATT_Register: Allocated name:com.paoconsole uuid:d353dcd5-3b2b-9623-f448-82410977e105 gatt_if:56 eatt_support:false
+2026-04-02 15:10:31.065 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x00, mLmpSubVer: 0x0000, mManufacturerId: 0x0000, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 18, mRssi: -90, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 192, mPiconetClock: 0x00000003, mRetransmissionCount: 3, mNoRxCount: 4, mNakCount: 0, mLastTxAckTimestamp: 0x00000000, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000000, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 205824, mRxDupPackets: 542976, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 1061601, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:10:31.116 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x00, mLmpSubVer: 0x0000, mManufacturerId: 0x0000, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 18, mRssi: -90, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 192, mPiconetClock: 0x00000006, mRetransmissionCount: 2, mNoRxCount: 2, mNakCount: 0, mLastTxAckTimestamp: 0x00000000, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000000, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 2560, mRxDupPackets: 2304, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 0, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:10:31.241 30255-30278 ReactNativeJS           com.paoconsole                       I  'Unified scan: found charger device', 'Pao Charger', 'C7:B4:84:DA:DD:6F'
+2026-04-02 15:10:31.272 30430-30482 gatt_api                com.google.android.bluetooth         I  system/stack/gatt/gatt_api.cc:1385 GATT_Register: Allocated name:com.paoconsole uuid:a6579603-3dcb-a4a7-d438-e3c44a752337 gatt_if:57 eatt_support:false
+2026-04-02 15:10:31.429 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2289 btif_on_name_read_from_btm: xx:xx:xx:xx:dd:6f Pao Charger
+2026-04-02 15:10:31.430 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2268 btif_on_name_read: Callback for read name event addr:xx:xx:xx:xx:dd:6f[random] name:Pao Charger
+2026-04-02 15:10:46.774 17581-17581 ActivityThread          com...android.apps.privacy.wildlife  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:46.778 17581-17581 ActivityThread          com...android.apps.privacy.wildlife  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:10:52.692 30430-30547 BtScan.ScanController   com.google.android.bluetooth         I  Location deny list for [ScanClient(com.google.uid.shared:10141, id=1, mode[BALANCED, used=BALANCED]), ScanClient(com.paoconsole, id=2, mode[LOW_POWER, used=LOW_POWER])]; Skip
+2026-04-02 15:11:22.627 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -72, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000455, mRetransmissionCount: 66, mNoRxCount: 51, mNakCount: 1, mLastTxAckTimestamp: 0x00000423, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000423, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 1391104, mRxDupPackets: 1479936, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 537357, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:11:25.138 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -72, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000487, mRetransmissionCount: 46, mNoRxCount: 46, mNakCount: 0, mLastTxAckTimestamp: 0x00000423, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000423, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 47104, mRxDupPackets: 49920, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 13005, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:11:25.403 30255-30278 ReactNativeJS           com.paoconsole                       I  'Unified scan: found charger device', 'Pao Charger', 'C7:B4:84:DA:DD:6F'
+2026-04-02 15:11:25.450 30430-30482 gatt_api                com.google.android.bluetooth         I  system/stack/gatt/gatt_api.cc:1385 GATT_Register: Allocated name:com.paoconsole uuid:47bd9b5d-c33e-fa5e-e2f6-7cf18b02e200 gatt_if:58 eatt_support:false
+2026-04-02 15:11:25.677  6451-12811 GattTransaction         com....android.apps.camera.services  W  [[FitbitBluetoothDevice Address: C7:B4:84:DA:DD:6F, Name: Pao Charger, Rssi: null, Advertising Data: null, Device Origin: CONNECTED]] The transaction conditions are not met
+2026-04-02 15:11:25.930 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2289 btif_on_name_read_from_btm: xx:xx:xx:xx:dd:6f Pao Charger
+2026-04-02 15:11:25.930 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2268 btif_on_name_read: Callback for read name event addr:xx:xx:xx:xx:dd:6f[random] name:Pao Charger
+2026-04-02 15:11:50.186 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -69, mSnr: 0, mUnusedAfhChannelCount: 14,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000237, mRetransmissionCount: 66, mNoRxCount: 53, mNakCount: 3, mLastTxAckTimestamp: 0x00000205, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000205, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 582144, mRxDupPackets: 588032, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x0000000E, mSlotsUsed: 83849, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:11:52.690 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -69, mSnr: 0, mUnusedAfhChannelCount: 14,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000269, mRetransmissionCount: 50, mNoRxCount: 50, mNakCount: 0, mLastTxAckTimestamp: 0x00000205, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000205, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 67840, mRxDupPackets: 70400, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 8221, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:11:52.802 30255-30278 ReactNativeJS           com.paoconsole                       I  'Unified scan: found charger device', 'Pao Charger', 'C7:B4:84:DA:DD:6F'
+2026-04-02 15:11:52.841 30430-30482 gatt_api                com.google.android.bluetooth         I  system/stack/gatt/gatt_api.cc:1385 GATT_Register: Allocated name:com.paoconsole uuid:ed394dbb-57ff-85b5-c874-868276b15f71 gatt_if:60 eatt_support:false
+2026-04-02 15:11:53.250  6451-12811 GattTransaction         com....android.apps.camera.services  W  [[FitbitBluetoothDevice Address: C7:B4:84:DA:DD:6F, Name: Pao Charger, Rssi: null, Advertising Data: null, Device Origin: CONNECTED]] The transaction conditions are not met
+2026-04-02 15:11:53.336 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2289 btif_on_name_read_from_btm: xx:xx:xx:xx:dd:6f Pao Charger
+2026-04-02 15:11:53.336 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2268 btif_on_name_read: Callback for read name event addr:xx:xx:xx:xx:dd:6f[random] name:Pao Charger
+2026-04-02 15:12:17.391  4573-4573  ActivityThread          com.google.android.partnersetup      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.396 29158-29158 ActivityThread          com...gle.android.apps.walletnfcrel  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.398  4573-4573  ActivityThread          com.google.android.partnersetup      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.399 29158-29158 ActivityThread          com...gle.android.apps.walletnfcrel  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.400  4573-4573  ActivityThread          com.google.android.partnersetup      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.400 29158-29158 ActivityThread          com...gle.android.apps.walletnfcrel  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.400  4573-4573  ActivityThread          com.google.android.partnersetup      D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.401 29158-29158 ActivityThread          com...gle.android.apps.walletnfcrel  D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.419 22820-22820 ActivityThread          com.duckduckgo.mobile.android        D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:17.422 22820-22820 ActivityThread          com.duckduckgo.mobile.android        D  Package [com.paoconsole] reported as REPLACED, but missing application info. Assuming REMOVED.
+2026-04-02 15:12:19.292 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -69, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000259, mRetransmissionCount: 57, mNoRxCount: 55, mNakCount: 3, mLastTxAckTimestamp: 0x00000227, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000227, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 744960, mRxDupPackets: 831232, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 894586, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:12:21.808 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -69, mSnr: 0, mUnusedAfhChannelCount: 13,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x0000028B, mRetransmissionCount: 50, mNoRxCount: 50, mNakCount: 0, mLastTxAckTimestamp: 0x00000227, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x00000227, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 75264, mRxDupPackets: 83712, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 122270, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:12:21.888  1826-4577  CoreBackPreview         system_server                        D  Window{ea7ac30 u0 com.paoconsole/com.paoconsole.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@528d148, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+2026-04-02 15:12:22.158 30255-30278 ReactNativeJS           com.paoconsole                       I  'Unified scan: found charger device', 'Pao Charger', 'C7:B4:84:DA:DD:6F'
+2026-04-02 15:12:22.207 30430-30482 gatt_api                com.google.android.bluetooth         I  system/stack/gatt/gatt_api.cc:1385 GATT_Register: Allocated name:com.paoconsole uuid:8996e839-eb10-ec9a-bacb-43a9d11967ed gatt_if:61 eatt_support:false
+2026-04-02 15:12:22.374  6451-12811 GattTransaction         com....android.apps.camera.services  W  [[FitbitBluetoothDevice Address: C7:B4:84:DA:DD:6F, Name: Pao Charger, Rssi: null, Advertising Data: null, Device Origin: CONNECTED]] The transaction conditions are not met
+2026-04-02 15:12:22.584 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2289 btif_on_name_read_from_btm: xx:xx:xx:xx:dd:6f Pao Charger
+2026-04-02 15:12:22.584 30430-30482 bt_btif_dm              com.google.android.bluetooth         I  system/btif/src/btif_dm.cc:2268 btif_on_name_read: Callback for read name event addr:xx:xx:xx:xx:dd:6f[random] name:Pao Charger
+2026-04-02 15:12:24.078  1826-4969  CoreBackPreview         system_server                        D  Window{ea7ac30 u0 com.paoconsole/com.paoconsole.MainActivity}: Setting back callback null
+2026-04-02 15:12:24.110  1826-2412  ImeTracker              system_server                        I  com.paoconsole:f0f05f1c: onRequestHide at ORIGIN_SERVER reason HIDE_SAME_WINDOW_FOCUSED_WITHOUT_EDITOR fromUser false userId 0 displayId 0
+2026-04-02 15:12:24.110 30255-30255 ImeTracker              com.paoconsole                       I  com.paoconsole:f0f05f1c: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+2026-04-02 15:12:24.112 12740-12740 GoogleInpu...hodService com...gle.android.inputmethod.latin  I  GoogleInputMethodService.onStartInput():1434 onStartInput(EditorInfo{EditorInfo{packageName=com.paoconsole, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+2026-04-02 15:12:24.114  1826-3250  PackageConfigPersister  system_server                        W  App-specific configuration not found for packageName: com.paoconsole and userId: 0
+2026-04-02 15:12:56.142 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -68, mSnr: 0, mUnusedAfhChannelCount: 14,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x000002F2, mRetransmissionCount: 69, mNoRxCount: 51, mNakCount: 2, mLastTxAckTimestamp: 0x000002C0, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x000002C0, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 897536, mRxDupPackets: 928768, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000000, mSlotsUsed: 601193, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+2026-04-02 15:12:57.177  1826-4791  CoreBackPreview         system_server                        D  Window{80fd75e u0 com.paoconsole/com.paoconsole.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@f5d25b0, mPriority=-1, mIsAnimationCallback=false, mOverrideBehavior=0}
+2026-04-02 15:12:58.639 30430-30532 BluetoothQ...veCallback com.google.android.bluetooth         I  BQR: {
+                                                                                                      mAddr: C7:B4:84:DA:DD:6F, mLmpVer: 0x07, mLmpSubVer: 0x0064, mManufacturerId: 0x0059, mName: Pao Charger, mBluetoothClass: 1f00,
+                                                                                                      BqrCommon: {
+                                                                                                        mQualityReportId: Approaching LSTO(0x02), mPacketType: TYPE_DH1(0x11), mConnectionHandle: 0x0041, mConnectionRole: 0(0), mTxPowerLevel: 12, mRssi: -68, mSnr: 0, mUnusedAfhChannelCount: 14,
+                                                                                                        mAfhSelectUnidealChannelCount: 0, mLsto: 8000, mPiconetClock: 0x00000324, mRetransmissionCount: 48, mNoRxCount: 48, mNakCount: 0, mLastTxAckTimestamp: 0x000002C0, mFlowOffCount: 0,
+                                                                                                        mLastFlowOnTimestamp: 0x000002C0, mOverflowCount: 0, mUnderflowCount: 0, mAddr: 00:00:00:00:00:00, mCalFailedItemCount: 0,
+                                                                                                        mTxTotalPackets: 0, mTxUnackPackets: 0, mTxFlushPackets: 0, mTxLastSubeventPackets: 0, mCrcErrorPackets: 36608, mRxDupPackets: 35584, mRxUnRecvPackets: 0, mCoexInfoMask: 0
+                                                                                                      }
+                                                                                                      BqrVsLsto: {
+                                                                                                        mConnState: CONN_IDLE(0x00), mBasebandStats: 0x00000002, mSlotsUsed: 5627, mCxmDenials: 0, mTxSkipped: 0, mRfLoss: 0, mNativeClock: 0x00000000, mLastTxAckTimestamp: 0x00000000
+                                                                                                      }
+                                                                                                    }
+
+charger logs"
+
+ING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+BLE disconnected, restarting advertising
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+BLE disconnected, restarting advertising
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+BLE disconnected, restarting advertising
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+BLE disconnected, restarting advertising
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result: CAN message sent successfully to charger
+== INCOMING CAN -- id: -447681593
+Error: charger off (reverse polarity protection)
+=== OUTGOING: 
+====== id dec: 403105268  hex: 0x1806e5f4
+====== volt dec: 346.6  hex: 0xd8a
+====== amp dec: 20.0  hex: 0xc8
+canWrite result

@@ -39,6 +39,7 @@ void bleConnectCallback(void) {
 }
 
 void bleDisconnectCallback(void) {
+    if (!bleConnected) return;  // duplicate event — already handled
     bleConnected = false;
     Logger::log("BLE disconnected, restarting advertising");
     ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
@@ -125,17 +126,25 @@ void Ble::setup() {
 
   /* Add the Service definition */
   /* Service ID should be 1 */
+  // CCCD budget: nRF51822 S110 softdevice supports ~8 CCCDs per connection.
+  // We use exactly 6 notify characteristics (6 CCCDs):
+  //   cVolt (0x2BED), cAmp (0x2BF0), rTime (0x2BEE),
+  //   chargeState (0xFF10), SOC (0xFF11), error (0xFF12)
+  // The following 7 characteristics are PROPERTIES=0x02 (Read-only, no CCCD):
+  //   tVolt (0x2A1B), tAmp (0x2A1A), nomV (0xFF20), maxMult (0xFF21),
+  //   minMult (0xFF22), absMaxV (0xFF23), absMinV (0xFF24)
+  // Config chars (0xFF01/02/03) use PROPERTIES=0x0A (Read+Write, no CCCD).
   Logger::log("Adding the Service definition (UUID = 0x27B0): ");
   bool success = ble.sendCommandWithIntReply( F("AT+GATTADDSERVICE=UUID=0x27B0"), &serviceId);
   if (! success) {
     Logger::log("Could not add service");
   }
 
-  success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1B, PROPERTIES=0x10, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tVoltId);
+  success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1B, PROPERTIES=0x02, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tVoltId);
   if (! success) {
     Logger::log("Could not add char1");
   }
-  success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1A, PROPERTIES=0x10, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tAmpId);
+  success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1A, PROPERTIES=0x02, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tAmpId);
   if (! success) {
     Logger::log("Could not add char2");
   }
@@ -188,19 +197,19 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &errorCharId);
   if (!success) Logger::log("Could not add error char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &nominalVoltCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &nominalVoltCharId);
   if (!success) Logger::log("Could not add nominal volt char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
   if (!success) Logger::log("Could not add max mult char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
   if (!success) Logger::log("Could not add min mult char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMaxVCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMaxVCharId);
   if (!success) Logger::log("Could not add abs max volt char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMinVCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMinVCharId);
   if (!success) Logger::log("Could not add abs min volt char");
 
   // Register per-value write callbacks for direct config characteristics
