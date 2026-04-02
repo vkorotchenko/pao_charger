@@ -125,17 +125,17 @@ void Ble::setup() {
   int targetPct  = (int)(Config::getTargetPercentage() * 1000);
   int maxTime    = Config::getMaxChargeTime();
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
   if (!success) Logger::log("Could not add cfg amp char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (targetPct >> 8) & 0xFF, targetPct & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
   if (!success) Logger::log("Could not add cfg pct char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxTime >> 8) & 0xFF, maxTime & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
