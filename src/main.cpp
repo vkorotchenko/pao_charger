@@ -26,6 +26,7 @@ float pv_voltage;
 float pv_current;
 unsigned long running_time;
 bool isCharging = true;
+bool chargerEnabled = true;  // controlled via BLE cmd=4; true=charging allowed, false=user stopped
 
 Led *led;
 Ble *bt;
@@ -192,7 +193,7 @@ void canWriteConfig()
 void canWrite()
 {
   isCharging = checkTimer();
-  char enableBit = isCharging ? 0x00 :0x01;
+  char enableBit = (isCharging && chargerEnabled) ? 0x00 : 0x01;
 
   unsigned char data[length] = {highByte(Config::getTargetVoltage()), lowByte(Config::getTargetVoltage()), highByte(Config::getMaxCurrent()), lowByte(Config::getMaxCurrent()), enableBit, 0x00, 0x00, 0x00};
 

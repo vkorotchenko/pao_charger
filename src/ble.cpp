@@ -1,6 +1,8 @@
 #include "ble.h"
 #include "Config.h"
 
+extern bool chargerEnabled;
+
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 int32_t serviceId;
 int32_t tVoltId;
@@ -56,6 +58,10 @@ void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
         case 3:
             Config::setMaxChargeTime((int)val);
             Logger::log("BLE cmd: max charge time -> %d s", (int)val);
+            break;
+        case 4:
+            chargerEnabled = (val != 0);
+            Logger::log("BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
             break;
         default:
             Logger::log("BLE cmd: unknown cmd %d", (int)cmd);
@@ -218,9 +224,11 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.println(running_time, HEX);
   ble.waitForOK();
 
-  // Charge state: 0=NOT_CHARGING, 1=CHARGING, 2=COMPLETE
+  // Charge state: 0=NOT_CHARGING, 1=CHARGING, 2=COMPLETE, 3=STOPPED_BY_USER
   uint8_t chargeStateVal = 0;
-  if (isCharging) {
+  if (!chargerEnabled) {
+    chargeStateVal = 3;  // STOPPED_BY_USER
+  } else if (isCharging) {
     chargeStateVal = (soc >= 4) ? 2 : 1;
   }
 
