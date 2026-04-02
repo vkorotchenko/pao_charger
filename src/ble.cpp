@@ -23,6 +23,8 @@ int32_t errorCharId;
 int32_t nominalVoltCharId;
 int32_t maxMultCharId;
 int32_t minMultCharId;
+int32_t absMaxVCharId;
+int32_t absMinVCharId;
 
 void bleConfigCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
@@ -135,6 +137,12 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
   if (!success) Logger::log("Could not add min mult char");
 
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMaxVCharId);
+  if (!success) Logger::log("Could not add abs max volt char");
+
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x12,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMinVCharId);
+  if (!success) Logger::log("Could not add abs min volt char");
+
   ble.setBleGattRxCallback(cfgAmpId,     bleConfigCallback);
   ble.setBleGattRxCallback(cfgPctId,     bleConfigCallback);
   ble.setBleGattRxCallback(cfgMaxTimeId, bleConfigCallback);
@@ -146,8 +154,12 @@ void Ble::setup() {
   ble.reset();
 }
 
+void Ble::poll() {
+  ble.update(10);  // process incoming BLE writes — called every loop() iteration so writes
+                   // are applied before the next canWrite() tick, not one cycle later
+}
+
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
-  ble.update(10);  // process incoming BLE writes (fires bleConfigCallback if a central wrote a config char)
 
   ble.print( F("AT+GATTCHAR=") );
   ble.print( tVoltId );
@@ -230,5 +242,23 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print( minMultCharId );
   ble.print( F(",") );
   ble.println(minMult, HEX);
+  ble.waitForOK();
+
+  // absolute_max_v (0xFF23): nominalVoltage * maxMultiplier, in 1/10th V, big-endian 2-byte ASCII hex
+  uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
+  snprintf(hexBuf, sizeof(hexBuf), "%04X", absMaxV);
+  ble.print(F("AT+GATTCHAR="));
+  ble.print(absMaxVCharId);
+  ble.print(F(","));
+  ble.println(hexBuf);
+  ble.waitForOK();
+
+  // absolute_min_v (0xFF24): nominalVoltage * minMultiplier, in 1/10th V, big-endian 2-byte ASCII hex
+  uint16_t absMinV = (uint16_t)Config::getMinVoltage();
+  snprintf(hexBuf, sizeof(hexBuf), "%04X", absMinV);
+  ble.print(F("AT+GATTCHAR="));
+  ble.print(absMinVCharId);
+  ble.print(F(","));
+  ble.println(hexBuf);
   ble.waitForOK();
 }

@@ -27,7 +27,7 @@ bool Config::getAutoNominalFromCan()
 
 void Config::setNominalMaxMultiplier(int valueX100)
 {
-    if (Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) == valueX100) return;
+    if (EEPROM.isValid() && Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) == valueX100) return;
     EEPROM.update(EEPROM_NOMINAL_MAX_MULT,     (uint8_t)(valueX100 >> 8));
     EEPROM.update(EEPROM_NOMINAL_MAX_MULT + 1, (uint8_t)(valueX100 & 0xFF));
     EEPROM.commit();
@@ -35,7 +35,7 @@ void Config::setNominalMaxMultiplier(int valueX100)
 
 void Config::setNominalMinMultiplier(int valueX100)
 {
-    if (Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT) == valueX100) return;
+    if (EEPROM.isValid() && Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT) == valueX100) return;
     EEPROM.update(EEPROM_NOMINAL_MIN_MULT,     (uint8_t)(valueX100 >> 8));
     EEPROM.update(EEPROM_NOMINAL_MIN_MULT + 1, (uint8_t)(valueX100 & 0xFF));
     EEPROM.commit();
@@ -44,7 +44,7 @@ void Config::setNominalMinMultiplier(int valueX100)
 void Config::setAutoNominalFromCan(bool enable)
 {
     int val = enable ? 1 : 0;
-    if (Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) == val) return;
+    if (EEPROM.isValid() && Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) == val) return;
     EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN,     (uint8_t)(val >> 8));
     EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN + 1, (uint8_t)(val & 0xFF));
     EEPROM.commit();
@@ -109,7 +109,7 @@ void Config::printAllValues()
 
 void Config::setNominalVoltage(int newValue)
 {
-    if (Config::getNominalVoltage() == newValue) return;
+    if (EEPROM.isValid() && Config::getNominalVoltage() == newValue) return;
     EEPROM.update(EEPROM_NOMINAL_VOLTAGE,     (uint8_t)(newValue >> 8));
     EEPROM.update(EEPROM_NOMINAL_VOLTAGE + 1, (uint8_t)(newValue & 0xFF));
     EEPROM.commit();
@@ -117,7 +117,7 @@ void Config::setNominalVoltage(int newValue)
 
 void Config::setMaxCurrent(int newValue)
 {
-    if (Config::getMaxCurrent() == newValue) return;
+    if (EEPROM.isValid() && Config::getMaxCurrent() == newValue) return;
     EEPROM.update(EEPROM_MAX_AMPS,     (uint8_t)(newValue >> 8));
     EEPROM.update(EEPROM_MAX_AMPS + 1, (uint8_t)(newValue & 0xFF));
     EEPROM.commit();
@@ -134,7 +134,7 @@ void Config::setCanSpeed(int newValue)
 void Config::setTargetPercentage(float newValue)
 {
     int stored = (int)(newValue * 1000);
-    if ((int)(Config::getTargetPercentage() * 1000) == stored) return;
+    if (EEPROM.isValid() && (int)(Config::getTargetPercentage() * 1000) == stored) return;
     EEPROM.update(EEPROM_TARGET_PERCENTAGE,     (uint8_t)(stored >> 8));
     EEPROM.update(EEPROM_TARGET_PERCENTAGE + 1, (uint8_t)(stored & 0xFF));
     EEPROM.commit();
@@ -142,7 +142,7 @@ void Config::setTargetPercentage(float newValue)
 
 void Config::setMaxChargeTime(int newValue)
 {
-    if (Config::getMaxChargeTime() == newValue) return;
+    if (EEPROM.isValid() && Config::getMaxChargeTime() == newValue) return;
     EEPROM.update(EEPROM_MAX_CHARGE_TIME,     (uint8_t)(newValue >> 8));
     EEPROM.update(EEPROM_MAX_CHARGE_TIME + 1, (uint8_t)(newValue & 0xFF));
     EEPROM.commit();

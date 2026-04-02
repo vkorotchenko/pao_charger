@@ -14,10 +14,13 @@
 #endif
 
 extern int32_t minMultCharId;
+extern int32_t absMaxVCharId;
+extern int32_t absMinVCharId;
 
 class Ble {
 public:
     void setup();
+    void poll();  // call every loop() iteration to process incoming BLE writes immediately
     void loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state);
 private:
 };

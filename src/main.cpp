@@ -177,6 +177,16 @@ void canWriteConfig()
     minMult, autoNom
   };
   CAN.MCP_CAN::sendMsgBuf(Config::getConfigBroadcast2Id(), ext, length, frame2);
+
+  // Frame 3: Absolute voltage limits
+  uint8_t frame3[8] = {0};
+  uint16_t absMax = (uint16_t)Config::getMaxVoltage();
+  uint16_t absMin = (uint16_t)Config::getMinVoltage();
+  frame3[0] = highByte(absMax);
+  frame3[1] = lowByte(absMax);
+  frame3[2] = highByte(absMin);
+  frame3[3] = lowByte(absMin);
+  CAN.MCP_CAN::sendMsgBuf(CHARGER_CONFIG_BROADCAST3_ID, ext, length, frame3);
 }
 
 void canWrite()
@@ -233,6 +243,8 @@ void send_ble_info(){
 
 void loop()
 {
+  bt->poll();      // poll BLE for incoming writes every iteration — ensures bleConfigCallback
+                   // fires before canWrite(), not one cycle (1 s) later
   timer.run();
 
 	// serialConsole->loop();

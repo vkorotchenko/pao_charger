@@ -21,16 +21,22 @@ BO_ 2566869221 TCC_Status: 8 Charger
  SG_ CommTimeout       : 36|1@1+  (1,0)     [0|1]       ""   Controller
 
 BO_ 2566889701 Config_Frame1: 8 Controller
- SG_ MaxCurrent_A      : 7|16@0+  (0.1,0)   [0|6553.5]  "A"  Vector__XXX
- SG_ MaxCurrent_B      : 23|16@0+ (0.1,0)   [0|6553.5]  "A"  Vector__XXX
- SG_ NominalVoltage    : 39|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
- SG_ TargetVoltage_Cfg : 55|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
+ SG_ MaxCurrent           : 7|16@0+  (0.1,0)   [0|6553.5]  "A"  Vector__XXX
+ SG_ NominalMaxMultiplier : 23|16@0+ (0.01,0)  [0|655.35]  ""   Vector__XXX
+ SG_ NominalVoltage       : 39|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
+ SG_ TargetVoltage_Cfg    : 55|16@0+ (0.1,0)   [0|6553.5]  "V"  Vector__XXX
 
 BO_ 2566889957 Config_Frame2: 8 Controller
- SG_ TargetPercentage  : 0|8@1+   (1,0)     [0|100]     "%"  Vector__XXX
- SG_ ErrorState        : 8|8@1+   (1,0)     [0|255]     ""   Vector__XXX
- SG_ ChargingTime      : 23|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
- SG_ MaxChargeTime     : 39|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
+ SG_ TargetPercentage     : 0|8@1+   (1,0)     [0|100]     "%"  Vector__XXX
+ SG_ ErrorState           : 8|8@1+   (1,0)     [0|255]     ""   Vector__XXX
+ SG_ ChargingTime         : 23|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
+ SG_ MaxChargeTime        : 39|16@0+ (1,0)     [0|65535]   "s"  Vector__XXX
+ SG_ NominalMinMultiplier : 48|8@1+  (0.01,0)  [0|2.55]    ""   Vector__XXX
+ SG_ AutoNominalFromCan   : 56|8@1+  (1,0)     [0|1]       ""   Vector__XXX
+
+BO_ 2566890213 Config_Frame3: 8 Vector__XXX
+ SG_ absolute_max_v : 7|16@0+ (0.1,0) [0|6553.5] "V" Vector__XXX
+ SG_ absolute_min_v : 23|16@0+ (0.1,0) [0|6553.5] "V" Vector__XXX
 
 BO_ 2566873332 Config_SetCommand: 8 Vector__XXX
  SG_ CommandID : 0|8@1+   (1,0)  [0|255]    ""  Controller
@@ -43,6 +49,7 @@ CM_ BO_ 2550588916 "Controller->Charger command, 1 Hz. CAN ID 0x1806E5F4 (29-bit
 CM_ BO_ 2566869221 "Charger->Controller status. CAN ID 0x18FF50E5 (29-bit ext). DBC decimal: 0x18FF50E5 | 0x80000000 = 2566869221.";
 CM_ BO_ 2566889701 "Controller config broadcast frame 1, 1 Hz. CAN ID 0x18FFA0E5 (29-bit ext). DBC decimal: 0x18FFA0E5 | 0x80000000 = 2566889701.";
 CM_ BO_ 2566889957 "Controller config broadcast frame 2, 1 Hz. CAN ID 0x18FFA1E5 (29-bit ext). DBC decimal: 0x18FFA1E5 | 0x80000000 = 2566889957.";
+CM_ BO_ 2566890213 "Controller config broadcast frame 3, 1 Hz. CAN ID 0x18FFA2E5 (29-bit ext). DBC decimal: 0x18FFA2E5 | 0x80000000 = 2566890213. Absolute voltage limits.";
 CM_ BO_ 2566873332 "External->Controller config command. CAN ID 0x18FF60F4 (29-bit ext). DBC decimal: 0x18FF60F4 | 0x80000000 = 2566873332.";
 
 CM_ SG_ 2550588916 TargetVoltage     "Target charging voltage. Physical = raw * 0.1 V. Default: 320.0 V (raw 3200).";
@@ -55,16 +62,20 @@ CM_ SG_ 2566869221 Overheating       "1 = charger temperature exceeded threshold
 CM_ SG_ 2566869221 InputVoltageWrong "1 = input voltage out of acceptable range.";
 CM_ SG_ 2566869221 ChargerOff        "1 = charger off (reverse polarity protection triggered).";
 CM_ SG_ 2566869221 CommTimeout       "1 = CAN communication timeout.";
-CM_ SG_ 2566889701 MaxCurrent_A      "Maximum charger current (copy 1 of 2). Physical = raw * 0.1 A.";
-CM_ SG_ 2566889701 MaxCurrent_B      "Maximum charger current (copy 2 of 2). Physical = raw * 0.1 A.";
-CM_ SG_ 2566889701 NominalVoltage    "Nominal battery pack voltage. Physical = raw * 0.1 V. Default: 320.0 V (raw 3200).";
-CM_ SG_ 2566889701 TargetVoltage_Cfg "Target charging voltage config. Physical = raw * 0.1 V.";
-CM_ SG_ 2566889957 TargetPercentage  "Charge target as integer percent 0-100. Stored as getTargetPercentage()*100.";
-CM_ SG_ 2566889957 ErrorState        "Current error bitfield (same bit layout as TCC_Status byte 4).";
-CM_ SG_ 2566889957 ChargingTime      "Elapsed charging session time in seconds.";
-CM_ SG_ 2566889957 MaxChargeTime     "Maximum allowed charge duration in seconds. Default: 43200 (12 h).";
-CM_ SG_ 2566873332 CommandID         "0x01=SetMaxChargeTime, 0x02=SetTargetPercentage, 0x03=SetMaxCurrent.";
-CM_ SG_ 2566873332 Value             "cmd=1: seconds. cmd=2: target_pct*10 (e.g. 950=95%). cmd=3: 1/10 A (e.g. 150=15.0A).";
+CM_ SG_ 2566889701 MaxCurrent           "Maximum charger current. Physical = raw * 0.1 A. Default: 20.0 A (raw 200).";
+CM_ SG_ 2566889701 NominalMaxMultiplier "Nominal max voltage multiplier. Physical = raw * 0.01. Default: 1.14 (raw 114).";
+CM_ SG_ 2566889701 NominalVoltage       "Nominal battery pack voltage. Physical = raw * 0.1 V. Default: 320.0 V (raw 3200).";
+CM_ SG_ 2566889701 TargetVoltage_Cfg   "Target charging voltage config. Physical = raw * 0.1 V.";
+CM_ SG_ 2566889957 TargetPercentage    "Charge target as integer percent 0-100. Stored as getTargetPercentage()*100.";
+CM_ SG_ 2566889957 ErrorState          "Current error bitfield (same bit layout as TCC_Status byte 4).";
+CM_ SG_ 2566889957 ChargingTime        "Elapsed charging session time in seconds.";
+CM_ SG_ 2566889957 MaxChargeTime       "Maximum allowed charge duration in seconds. Default: 43200 (12 h).";
+CM_ SG_ 2566889957 NominalMinMultiplier "Nominal min voltage multiplier. Physical = raw * 0.01. Default: 0.81 (raw 81).";
+CM_ SG_ 2566889957 AutoNominalFromCan  "0 = nominal voltage set manually, 1 = auto-updated from DMOC 0x650.";
+CM_ SG_ 2566890213 absolute_max_v      "Absolute maximum voltage (nominalVoltage * maxMultiplier). Physical = raw * 0.1 V. Read-only.";
+CM_ SG_ 2566890213 absolute_min_v      "Absolute minimum voltage (nominalVoltage * minMultiplier). Physical = raw * 0.1 V. Read-only.";
+CM_ SG_ 2566873332 CommandID           "0x01=SetMaxChargeTime, 0x02=SetTargetPercentage, 0x03=SetMaxCurrent, 0x04=SetNominalVoltage, 0x05=SetNominalMaxMult, 0x06=SetNominalMinMult, 0x07=SetAutoNominal.";
+CM_ SG_ 2566873332 Value               "cmd=1: seconds. cmd=2: target_pct*10 (e.g. 800=80%). cmd=3: 1/10 A (e.g. 150=15.0A). cmd=4: 1/10 V. cmd=5/6: multiplier*100 (e.g. 114=1.14). cmd=7: 0=off,1=on.";
 
 VAL_ 2550588916 EnableBit
   0 "Enable"
@@ -90,7 +101,15 @@ VAL_ 2566869221 CommTimeout
   0 "OK"
   1 "Timeout";
 
+VAL_ 2566889957 AutoNominalFromCan
+  0 "Manual"
+  1 "Auto";
+
 VAL_ 2566873332 CommandID
   1 "SetMaxChargeTime"
   2 "SetTargetPercentage"
-  3 "SetMaxCurrent";
+  3 "SetMaxCurrent"
+  4 "SetNominalVoltage"
+  5 "SetNominalMaxMult"
+  6 "SetNominalMinMult"
+  7 "SetAutoNominal";
