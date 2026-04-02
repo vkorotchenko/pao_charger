@@ -113,6 +113,7 @@ public:
     static void setNominalMaxMultiplier(int valueX100);
     static void setNominalMinMultiplier(int valueX100);
     static void setAutoNominalFromCan(bool enable);
+    static void resetToDefaults();
 
     static unsigned long getConfigBroadcast1Id();
     static unsigned long getConfigBroadcast2Id();

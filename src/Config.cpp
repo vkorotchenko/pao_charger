@@ -148,6 +148,17 @@ void Config::setMaxChargeTime(int newValue)
     EEPROM.commit();
 }
 
+void Config::resetToDefaults()
+{
+    Config::setNominalVoltage(NOMINAL_VOLTAGE);
+    Config::setMaxCurrent(MAX_AMPS);
+    Config::setMaxChargeTime(MAX_CHARGE_TIME);
+    Config::setTargetPercentage(TARGET_PERCENTAGE);
+    Config::setNominalMaxMultiplier(NOMINAL_MAX_MULT_DEFAULT);
+    Config::setNominalMinMultiplier(NOMINAL_MIN_MULT_DEFAULT);
+    Config::setAutoNominalFromCan(false);
+}
+
 unsigned long Config::getConfigBroadcast1Id() {
     return Config::getULFromEEPROM(CONFIG_BROADCAST_FRAME1_DEFAULT, EEPROM_CONFIG_BROADCAST1_ID);
 }

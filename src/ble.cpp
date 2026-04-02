@@ -11,8 +11,9 @@ int32_t cVoltId;
 int32_t cAmpId;
 int32_t rTime;
 
-// Config characteristics (Read+Write+Notify 0x1A).
-// Mobile writes directly to each; firmware write-backs confirm via notify.
+// Config characteristics (Read+Write 0x0A — no Notify, no CCCD).
+// Mobile writes directly; current values broadcast in slow group (every 5s).
+// PROPERTIES must stay 0x0A: 0x1A adds CCCDs that overflow the nRF51822 attribute table.
 int32_t cfgAmpId;
 int32_t cfgPctId;
 int32_t cfgMaxTimeId;
@@ -44,20 +45,16 @@ void bleDisconnectCallback(void) {
 }
 
 // --- Per-value write callbacks ---
-// Each reads [hi, lo] from data[], updates EEPROM via Config::set*(),
-// then write-backs the confirmed value as a notify so mobile sees the
-// round-trip result immediately (not waiting for the next slow broadcast).
+// Each reads [hi, lo] from data[] and updates EEPROM via Config::set*().
+// No write-back: 0xFF01/02/03 use PROPERTIES=0x0A (no Notify), so there is
+// no CCCD and no AT+GATTCHAR confirm needed. Mobile sees the updated value
+// on the next slow broadcast (every 5s).
 
 void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     Config::setMaxCurrent((int)val);
     Logger::log("BLE write: max current -> %d (1/10th A)", (int)val);
-    // Write-back: notify confirmed value so mobile doesn't wait for the 5s slow broadcast
-    char cfgBuf[10];
-    int confirmed = Config::getMaxCurrent();
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(confirmed >> 8), (uint8_t)(confirmed & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
 }
 
 void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
@@ -65,11 +62,6 @@ void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     Config::setTargetPercentage((float)val / 1000.0f);
     Logger::log("BLE write: target pct -> %d/1000", (int)val);
-    // Write-back: notify confirmed value
-    char cfgBuf[10];
-    int confirmed = (int)(Config::getTargetPercentage() * 1000);
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(confirmed >> 8), (uint8_t)(confirmed & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
 }
 
 void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
@@ -77,11 +69,6 @@ void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     Config::setMaxChargeTime((int)val);
     Logger::log("BLE write: max charge time -> %d s", (int)val);
-    // Write-back: notify confirmed value
-    char cfgBuf[10];
-    int confirmed = Config::getMaxChargeTime();
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(confirmed >> 8), (uint8_t)(confirmed & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
 }
 
 // 0xFF05 — ENABLE_CMD: start/stop only (cmd=4).
@@ -91,14 +78,21 @@ void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 4) return;
     uint8_t  cmd = data[0];
     uint16_t val = ((uint16_t)data[2] << 8) | data[3];
-    if (cmd == 4) {
-        chargerEnabled = (val != 0);
-        // NOTE: chargerEnabled is a runtime bool, NOT persisted to EEPROM.
-        // If firmware reboots it resets to true regardless of the last BLE command.
-        // Future improvement: persist to EEPROM so the stopped state survives resets.
-        Logger::log("BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
-    } else {
-        Logger::log("BLE cmd: unknown cmd %d (use direct char writes 0xFF01/02/03 for config)", (int)cmd);
+    switch (cmd) {
+        case 4:
+            chargerEnabled = (val != 0);
+            // NOTE: chargerEnabled is a runtime bool, NOT persisted to EEPROM.
+            // If firmware reboots it resets to true regardless of the last BLE command.
+            // Future improvement: persist to EEPROM so the stopped state survives resets.
+            Logger::log("BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
+            break;
+        case 5:
+            Config::resetToDefaults();
+            Logger::log("BLE cmd: EEPROM reset to defaults");
+            break;
+        default:
+            Logger::log("BLE cmd: unknown cmd %d (use direct char writes 0xFF01/02/03 for config)", (int)cmd);
+            break;
     }
 }
 
@@ -158,25 +152,25 @@ void Ble::setup() {
     Logger::log("Could not add char5");
   }
 
-  // Writable config characteristics (Read+Write+Notify, PROPERTIES=0x1A).
-  // Mobile writes directly; firmware confirms via notify write-back.
-  // Also broadcast in the slow group (every 5s) so mobile always has current values.
+  // Writable config characteristics (Read+Write, PROPERTIES=0x0A — no Notify, no CCCD).
+  // Mobile writes directly; values broadcast in slow group (every 5s).
+  // MUST stay 0x0A: 0x1A adds CCCDs and overflows the nRF51822 attribute table.
   char cmd[80];
   int maxCurrent = Config::getMaxCurrent();
   int targetPct  = (int)(Config::getTargetPercentage() * 1000);
   int maxTime    = Config::getMaxChargeTime();
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
   if (!success) Logger::log("Could not add cfg amp char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (targetPct >> 8) & 0xFF, targetPct & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
   if (!success) Logger::log("Could not add cfg pct char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxTime >> 8) & 0xFF, maxTime & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
