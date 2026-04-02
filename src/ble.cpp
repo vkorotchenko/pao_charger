@@ -240,8 +240,8 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.waitForOK();
 
   uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-  char hexBuf[5];
-  snprintf(hexBuf, sizeof(hexBuf), "%04X", nomV);
+  char hexBuf[10];
+  snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(nomV >> 8), (uint8_t)(nomV & 0xFF));
   ble.print( F("AT+GATTCHAR=") );
   ble.print( nominalVoltCharId );
   ble.print( F(",") );
@@ -264,7 +264,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // absolute_max_v (0xFF23): nominalVoltage * maxMultiplier, in 1/10th V, big-endian 2-byte ASCII hex
   uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-  snprintf(hexBuf, sizeof(hexBuf), "%04X", absMaxV);
+  snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(absMaxV >> 8), (uint8_t)(absMaxV & 0xFF));
   ble.print(F("AT+GATTCHAR="));
   ble.print(absMaxVCharId);
   ble.print(F(","));
@@ -273,10 +273,26 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // absolute_min_v (0xFF24): nominalVoltage * minMultiplier, in 1/10th V, big-endian 2-byte ASCII hex
   uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-  snprintf(hexBuf, sizeof(hexBuf), "%04X", absMinV);
+  snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(absMinV >> 8), (uint8_t)(absMinV & 0xFF));
   ble.print(F("AT+GATTCHAR="));
   ble.print(absMinVCharId);
   ble.print(F(","));
   ble.println(hexBuf);
   ble.waitForOK();
+
+  // Live config broadcast — mirrors CAN Config_Frame1/2
+  // Keeps 0xFF01/02/03 in sync so readConfigValues() always returns current EEPROM values.
+  char cfgBuf[10];
+
+  int maxCurrent = Config::getMaxCurrent();
+  snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(maxCurrent >> 8), (uint8_t)(maxCurrent & 0xFF));
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
+
+  int targetPct = (int)(Config::getTargetPercentage() * 1000);
+  snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(targetPct >> 8), (uint8_t)(targetPct & 0xFF));
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
+
+  int maxTime = Config::getMaxChargeTime();
+  snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(maxTime >> 8), (uint8_t)(maxTime & 0xFF));
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
 }
