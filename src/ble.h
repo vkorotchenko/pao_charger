@@ -17,6 +17,12 @@ extern int32_t minMultCharId;
 extern int32_t absMaxVCharId;
 extern int32_t absMinVCharId;
 
+// Per-value BLE write callbacks (registered in Ble::setup)
+void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len);
+void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len);
+void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len);
+void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len);
+
 class Ble {
 public:
     void setup();
