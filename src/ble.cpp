@@ -26,6 +26,19 @@ int32_t minMultCharId;
 int32_t absMaxVCharId;
 int32_t absMinVCharId;
 
+static bool bleConnected = false;
+
+void bleConnectCallback(void) {
+    bleConnected = true;
+    Logger::log("BLE connected");
+}
+
+void bleDisconnectCallback(void) {
+    bleConnected = false;
+    Logger::log("BLE disconnected, restarting advertising");
+    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+}
+
 void bleConfigCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     int val = ((int)data[0] << 8) | (int)data[1];
@@ -147,6 +160,9 @@ void Ble::setup() {
   ble.setBleGattRxCallback(cfgPctId,     bleConfigCallback);
   ble.setBleGattRxCallback(cfgMaxTimeId, bleConfigCallback);
 
+  ble.setConnectCallback(bleConnectCallback);
+  ble.setDisconnectCallback(bleDisconnectCallback);
+
   ble.sendCommandCheckOK( F("AT+GAPSETADVDATA=02-01-06-05-02-0d-18-0a-18") );
 
   /* Reset the device for the new service setting changes to take effect */
@@ -160,6 +176,8 @@ void Ble::poll() {
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
+
+  if (!bleConnected) return;
 
   ble.print( F("AT+GATTCHAR=") );
   ble.print( tVoltId );
