@@ -35,20 +35,11 @@ int32_t minMultCharId;
 int32_t absMaxVCharId;
 int32_t absMinVCharId;
 
-static bool needsRestartAdv = false;
+static bool wasConnected = false;
 
 static uint16_t pendingAmpEcho  = UINT16_MAX;
 static uint16_t pendingPctEcho  = UINT16_MAX;
 static uint16_t pendingTimeEcho = UINT16_MAX;
-
-// No connect callback — AT+EVENTENABLE replaces the mask each call, so registering
-// both connect (0x1) and disconnect (0x2) results in only the last one being active.
-// Connection state is polled directly via ble.isConnected() (AT+GAPGETCONN) in loop().
-
-void bleDisconnectCallback(void) {
-    needsRestartAdv = true;
-    Logger::log(LOG_CAT_BLE, "BLE disconnected");
-}
 
 // --- Per-value write callbacks ---
 // Each reads [hi, lo] from data[] and updates EEPROM via Config::set*().
@@ -241,7 +232,6 @@ void Ble::setup() {
   ble.setBleGattRxCallback(cfgMaxTimeId, bleMaxTimeCallback);
   ble.setBleGattRxCallback(cfgCmdId,     bleCmdCallback);  // start/stop only
 
-  ble.setDisconnectCallback(bleDisconnectCallback);
 
   // Seed GATT characteristics with EEPROM values immediately after reset.
   // mobile's readInitialState() fires on connect before the 1-second BLE timer loop
@@ -295,14 +285,13 @@ void Ble::setup() {
 }
 
 void Ble::poll() {
-  ble.update(10);  // process incoming BLE writes and GATT write events
-  if (needsRestartAdv) {
-    needsRestartAdv = false;
-    if (!ble.isConnected()) {
-      Logger::log(LOG_CAT_BLE, "BLE restarting advertising");
-      ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
-    }
+  ble.update(10);  // process incoming GATT write events
+  bool connected = ble.isConnected();
+  if (wasConnected && !connected) {
+    Logger::log(LOG_CAT_BLE, "BLE disconnected, restarting advertising");
+    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
   }
+  wasConnected = connected;
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
