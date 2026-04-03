@@ -38,6 +38,10 @@ int32_t absMinVCharId;
 static bool bleConnected = false;
 static bool needsRestartAdv = false;
 
+static uint16_t pendingAmpEcho  = UINT16_MAX;
+static uint16_t pendingPctEcho  = UINT16_MAX;
+static uint16_t pendingTimeEcho = UINT16_MAX;
+
 void bleConnectCallback(void) {
     bleConnected = true;
     Logger::log("BLE CONNECT: bleConnected=true");
@@ -64,6 +68,7 @@ void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     Logger::log("BLE WRITE amp: [%02X %02X] val=%d", data[0], data[1], (int)val);
     Config::setMaxCurrent((int)val);
     Logger::log("BLE write: max current -> %d (1/10th A)", (int)val);
+    pendingAmpEcho = val;
 }
 
 void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
@@ -72,6 +77,7 @@ void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     Logger::log("BLE WRITE pct: [%02X %02X] val=%d", data[0], data[1], (int)val);
     Config::setTargetPercentage((float)val / 1000.0f);
     Logger::log("BLE write: target pct -> %d/1000", (int)val);
+    pendingPctEcho = val;
 }
 
 void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
@@ -79,6 +85,7 @@ void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     Config::setMaxChargeTime((int)val);
     Logger::log("BLE write: max charge time -> %d s", (int)val);
+    pendingTimeEcho = val;
 }
 
 // 0xFF05 — ENABLE_CMD: start/stop only (cmd=4).
@@ -179,24 +186,14 @@ void Ble::setup() {
   // to set the attribute WRITE permission correctly. Without it (0x0A), mobile writes
   // fail with WRITE_NOT_PERMITTED. Mobile never subscribes to these → no CCCD written
   // → still exactly 6 CCCDs total (within the S110 per-connection limit).
-  char cmd[80];
-  int maxCurrent = Config::getMaxCurrent();
-  int targetPct  = (int)(Config::getTargetPercentage() * 1000);
-  int maxTime    = Config::getMaxChargeTime();
-
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
-           (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
-  success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
+  // Seeded with VALUE=0 here; the seeding block after SW reset populates real values.
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgAmpId);
   if (!success) Logger::log("Could not add cfg amp char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
-           (targetPct >> 8) & 0xFF, targetPct & 0xFF);
-  success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgPctId);
   if (!success) Logger::log("Could not add cfg pct char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
-           (maxTime >> 8) & 0xFF, maxTime & 0xFF);
-  success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
 
   // 0xFF05: ENABLE_CMD — start/stop only (cmd=4), 4-byte [cmd, 0, hi, lo]
@@ -242,12 +239,11 @@ void Ble::setup() {
   Serial.print(F("Performing a SW reset (service changes require a reset): "));
   ble.reset();
 
-  // Seed read-only GATT characteristics with EEPROM values immediately after reset.
+  // Seed GATT characteristics with EEPROM values immediately after reset.
   // mobile's readInitialState() fires on connect before the 1-second BLE timer loop
   // runs, so without this seeding it would read 0 for all values.
   // Config::get*() functions are safe here — they check EEPROM validity and fall back
   // to compile-time defaults if EEPROM is uninitialized.
-  // cfgAmp/cfgPct/cfgMaxTime are already seeded above in AT+GATTADDCHAR — skip those.
   Logger::log("BLE: seeding GATT table from EEPROM");
   {
     char initBuf[50];
@@ -278,6 +274,18 @@ void Ble::setup() {
 
     uint16_t absMinV = (uint16_t)Config::getMinVoltage();
     snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMinVCharId, (int)absMinV);
+    ble.sendCommandCheckOK(initBuf);
+
+    int cfgAmpVal  = Config::getMaxCurrent();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgAmpId, cfgAmpVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    int cfgPctVal  = (int)(Config::getTargetPercentage() * 1000);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgPctId, cfgPctVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    int cfgTimeVal = Config::getMaxChargeTime();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgMaxTimeId, cfgTimeVal);
     ble.sendCommandCheckOK(initBuf);
   }
 }
@@ -314,6 +322,21 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
   ble.update(0);
   Logger::log("BLE drained events");
+
+  // Flush any pending write-back echoes set by BLE write callbacks.
+  // Done here (not in callbacks) to avoid SPI conflicts inside ble.update().
+  if (pendingAmpEcho != UINT16_MAX) {
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId);     ble.print(F(",")); ble.println(pendingAmpEcho,  HEX); ble.waitForOK();
+    pendingAmpEcho  = UINT16_MAX;
+  }
+  if (pendingPctEcho != UINT16_MAX) {
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId);     ble.print(F(",")); ble.println(pendingPctEcho,  HEX); ble.waitForOK();
+    pendingPctEcho  = UINT16_MAX;
+  }
+  if (pendingTimeEcho != UINT16_MAX) {
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId); ble.print(F(",")); ble.println(pendingTimeEcho, HEX); ble.waitForOK();
+    pendingTimeEcho = UINT16_MAX;
+  }
 
   // loopCount drives the fast/slow split:
   //   Fast group (every call, ~1s): live telemetry + status
@@ -356,8 +379,6 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // --- Slow group: config/battery info — every 5 calls (~5s) ---
   if (loopCount % 5 == 0) {
-    char hexBuf[10];
-
     uint16_t nomV = (uint16_t)Config::getNominalVoltage();
     ble.print(F("AT+GATTCHAR=")); ble.print(nominalVoltCharId); ble.print(F(",")); ble.println(nomV, HEX); ble.waitForOK();
 
@@ -373,18 +394,13 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
     uint16_t absMinV = (uint16_t)Config::getMinVoltage();
     ble.print(F("AT+GATTCHAR=")); ble.print(absMinVCharId); ble.print(F(",")); ble.println(absMinV, HEX); ble.waitForOK();
 
-    char cfgBuf[10];
-
     int maxCurrent = Config::getMaxCurrent();
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(maxCurrent >> 8), (uint8_t)(maxCurrent & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId);     ble.print(F(",")); ble.println(maxCurrent, HEX); ble.waitForOK();
 
-    int targetPct = (int)(Config::getTargetPercentage() * 1000);
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(targetPct >> 8), (uint8_t)(targetPct & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
+    int targetPct  = (int)(Config::getTargetPercentage() * 1000);
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId);     ble.print(F(",")); ble.println(targetPct, HEX);  ble.waitForOK();
 
-    int maxTime = Config::getMaxChargeTime();
-    snprintf(cfgBuf, sizeof(cfgBuf), "0x%02X-0x%02X", (uint8_t)(maxTime >> 8), (uint8_t)(maxTime & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId); ble.print(F(",")); ble.println(cfgBuf); ble.waitForOK();
+    int maxTime    = Config::getMaxChargeTime();
+    ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId); ble.print(F(",")); ble.println(maxTime, HEX);    ble.waitForOK();
   }
 }
