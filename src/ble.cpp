@@ -361,12 +361,8 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print(F("AT+GATTCHAR=")); ble.print(cAmpId);  ble.print(F(",")); ble.println(cAmp, HEX);  ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(rTime);   ble.print(F(",")); ble.println(running_time, HEX); ble.waitForOK();
 
-  // Charge state: 0=STOPPED, 1=ENABLED_IDLE, 2=CHARGING, 3=COMPLETE
-  uint8_t chargeStateVal;
-  if (!chargerEnabled)         { chargeStateVal = 0; }  // STOPPED
-  else if (!isCharging)        { chargeStateVal = 1; }  // ENABLED_IDLE
-  else if (soc >= 4)           { chargeStateVal = 3; }  // COMPLETE
-  else                         { chargeStateVal = 2; }  // CHARGING
+  // Charge state: 0=running/enabled, 1=stopped (mirrors enableBit in CAN msg 0x1806E5F4)
+  uint8_t chargeStateVal = (isCharging && chargerEnabled) ? 0 : 1;
 
   // SOC percent: rough 25% steps from getSOC() levels 0-4
   uint8_t socPct = (uint8_t)min(100, soc * 25);

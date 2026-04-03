@@ -94,7 +94,9 @@ unsigned long Config::getULFromEEPROM(unsigned long def, int addr) {
 }
 
 int Config::getTargetVoltage() {
-    return round(Config::getMaxVoltage() * Config::getTargetPercentage());
+    float minV = Config::getMinVoltage();
+    float maxV = Config::getMaxVoltage();
+    return round(minV + Config::getTargetPercentage() * (maxV - minV));
 }
 
 void Config::printAllValues()

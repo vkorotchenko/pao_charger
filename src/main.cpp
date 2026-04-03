@@ -43,19 +43,18 @@ void send_ble_info();
 
 int getSOC()
 {
-  if ( pv_voltage < Config::getTargetVoltage() * MID_CHARGE_MULTIPLIER) {
-    return 1;
-  }
-  if ( pv_voltage < Config::getNominalVoltage() * FULL_CHARGE_MULTIPLIER) {
-    return 2;
-  }
-  if ( pv_voltage >= Config::getTargetVoltage() * FULL_CHARGE_MULTIPLIER  * .90  && ( pv_voltage < Config::getTargetVoltage() * FULL_CHARGE_MULTIPLIER  * .98)) {
-    return 3;
-  }
-  if ( pv_voltage >= Config::getTargetVoltage() * FULL_CHARGE_MULTIPLIER  * .98) {
-    return 4;
-  }
-  return 0;
+  float minV    = Config::getMinVoltage()    / 10.0f;
+  float targetV = Config::getTargetVoltage() / 10.0f;
+
+  // Guard against degenerate range
+  if (targetV <= minV) { return 1; }
+
+  float pct = (pv_voltage - minV) / (targetV - minV) * 100.0f;
+
+  if (pct < 20.0f) { return 1; }
+  if (pct < 50.0f) { return 2; }
+  if (pct < 90.0f) { return 3; }
+  return 4;
 }
 
 bool checkTimer(){
