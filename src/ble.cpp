@@ -315,9 +315,8 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
   // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
-  int drained = 0;
-  while (ble.update(0)) { drained++; }
-  Logger::log("BLE drained %d events", drained);
+  ble.update(0);
+  Logger::log("BLE drained events");
 
   // loopCount drives the fast/slow split:
   //   Fast group (every call, ~1s): live telemetry + status
