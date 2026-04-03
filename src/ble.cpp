@@ -21,7 +21,7 @@ int32_t rTime;
 int32_t cfgAmpId;
 int32_t cfgPctId;
 int32_t cfgMaxTimeId;
-int32_t cfgCmdId;  // 0xFF05 — start/stop only (cmd=4)
+int32_t cfgOnOffId;  // 0xFF06 — on/off: 1-byte (0x00=off, 0x01=on)
 
 // Status characteristics (read + notify)
 int32_t chargeStateCharId;
@@ -81,30 +81,16 @@ void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     pendingTimeEcho = val;
 }
 
-// 0xFF05 — ENABLE_CMD: start/stop only (cmd=4).
-// All config writes (cmds 1-3) now go directly to 0xFF01/02/03 — send them
-// there or they will be ignored here.
-void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
-    if (len < 4) return;
-    uint8_t  cmd = data[0];
-    uint16_t val = ((uint16_t)data[2] << 8) | data[3];
-    Logger::log(LOG_CAT_BLE, "BLE CMD: cmd=%d val=%d", (int)cmd, (int)val);
-    switch (cmd) {
-        case 4:
-            chargerEnabled = (val != 0);
-            // NOTE: chargerEnabled is a runtime bool, NOT persisted to EEPROM.
-            // If firmware reboots it resets to true regardless of the last BLE command.
-            // Future improvement: persist to EEPROM so the stopped state survives resets.
-            Logger::log(LOG_CAT_BLE, "BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
-            break;
-        case 5:
-            Config::resetToDefaults();
-            Logger::log(LOG_CAT_BLE, "BLE cmd: EEPROM reset to defaults");
-            break;
-        default:
-            Logger::log(LOG_CAT_BLE, "BLE cmd: unknown cmd %d (use direct char writes 0xFF01/02/03 for config)", (int)cmd);
-            break;
-    }
+
+// 0xFF06 — ON/OFF CMD: 1-byte write. 0x00 = charger off, 0x01 = charger on.
+// NOTE: chargerEnabled is a runtime bool, NOT persisted to EEPROM.
+// Firmware reboots reset it to on regardless of the last BLE command.
+// Future improvement: persist to EEPROM so the off state survives resets.
+void bleOnOffCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
+    if (len < 1) return;
+    bool prev = chargerEnabled;
+    chargerEnabled = (data[0] != 0);
+    Logger::log(LOG_CAT_BLE, "BLE SET charger on/off: %d -> %d", (int)prev, (int)chargerEnabled);
 }
 
 void Ble::setup() {
@@ -146,6 +132,8 @@ void Ble::setup() {
   // Config chars (0xFF01/02/03) use PROPERTIES=0x1A (Read+Write+Notify). The Notify
   // bit is required for write permission to work on the nRF51822 SoftDevice. Mobile
   // never subscribes → no CCCD written → still 6 CCCDs total.
+  // On/off char (0xFF06) likewise uses PROPERTIES=0x1A for the same SoftDevice
+  // write-permission reason. Mobile never subscribes → no 7th CCCD.
   Logger::log(LOG_CAT_BLE, "Adding the Service definition (UUID = 0x27B0): ");
   bool success = ble.sendCommandWithIntReply( F("AT+GATTADDSERVICE=UUID=0x27B0"), &serviceId);
   if (! success) {
@@ -189,9 +177,12 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgMaxTimeId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg max time char");
 
-  // 0xFF05: ENABLE_CMD — start/stop only (cmd=4), 4-byte [cmd, 0, hi, lo]
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF05,PROPERTIES=0x0A,MIN_LEN=4,MAX_LEN=4,VALUE=00-00-00-00"), &cfgCmdId);
-  if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg cmd char");
+
+  // 0xFF06: ON/OFF CMD — 1-byte (0x00=off, 0x01=on). Default: on.
+  // PROPERTIES=0x1A (Read+Write+Notify): Notify bit required for SoftDevice write
+  // permission. Mobile never subscribes → no CCCD → still 6 CCCDs total.
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF06,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=1,VALUE=01"), &cfgOnOffId);
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add on/off char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF10,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &chargeStateCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add charge state char");
@@ -230,7 +221,7 @@ void Ble::setup() {
   ble.setBleGattRxCallback(cfgAmpId,     bleAmpCallback);
   ble.setBleGattRxCallback(cfgPctId,     blePctCallback);
   ble.setBleGattRxCallback(cfgMaxTimeId, bleMaxTimeCallback);
-  ble.setBleGattRxCallback(cfgCmdId,     bleCmdCallback);  // start/stop only
+  ble.setBleGattRxCallback(cfgOnOffId,   bleOnOffCallback);  // on/off
 
 
   // Seed GATT characteristics with EEPROM values immediately after reset.
@@ -281,6 +272,10 @@ void Ble::setup() {
     int cfgTimeVal = Config::getMaxChargeTime();
     snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgMaxTimeId, cfgTimeVal);
     ble.sendCommandCheckOK(initBuf);
+
+    // Seed on/off char (0xFF06) — charger starts on by default
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,01", (int)cfgOnOffId);
+    ble.sendCommandCheckOK(initBuf);
   }
 }
 
@@ -289,7 +284,11 @@ void Ble::poll() {
   bool connected = ble.isConnected();
   if (wasConnected && !connected) {
     Logger::log(LOG_CAT_BLE, "BLE disconnected, restarting advertising");
-    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+    // Use ble.println() not sendCommandCheckOK(): waitForOK() would consume a queued
+    // CONNECT event if mobile reconnects quickly, leaving isConnected() returning false
+    // permanently. println() is fire-and-forget; the "OK" is consumed by the next
+    // ble.update(10) call as an unrecognized event (silently skipped).
+    ble.println(F("AT+GAPSTARTADV"));
   }
   wasConnected = connected;
 }
@@ -301,7 +300,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   bool connected = ble.isConnected();
   ble.update(0);
 
-  Logger::log(LOG_CAT_BLE, "BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
+  Logger::log(LOG_CAT_BLE, "BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d on=%d soc=%d err=%d",
               (int)connected, cVolt, cAmp, tVolt, (int)isCharging,
               (int)chargerEnabled, soc, error_state);
   if (!connected) return;
@@ -330,13 +329,23 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   loopCount++;
 
   // --- Fast group: live telemetry — every call (1s) ---
+  // Guards between each write: if a DISCONNECT event queued up during waitForOK(),
+  // ble.update(0) at the top may have missed it. ble.isConnected() issues AT+GAPGETCONN
+  // which flushes any pending event and gives us the true connection state.
+  // Without these guards, waitForOK() can consume a queued DISCONNECT response and
+  // leave bleConnected=true permanently, causing AT+GATTCHAR writes into the void.
   ble.print(F("AT+GATTCHAR=")); ble.print(tVoltId); ble.print(F(",")); ble.println(tVolt, HEX); ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(tAmpId);  ble.print(F(",")); ble.println(tAmp, HEX);  ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(cVoltId); ble.print(F(",")); ble.println(cVolt, HEX); ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(cAmpId);  ble.print(F(",")); ble.println(cAmp, HEX);  ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(rTime);   ble.print(F(",")); ble.println(running_time, HEX); ble.waitForOK();
+  if (!ble.isConnected()) return;
 
-  // Charge state: 0=running/enabled, 1=stopped (mirrors enableBit in CAN msg 0x1806E5F4)
+  // Charge state: 0=charger on and charging, 1=charger off (mirrors enableBit in CAN msg 0x1806E5F4)
   uint8_t chargeStateVal = (isCharging && chargerEnabled) ? 0 : 1;
 
   // SOC percent: rough 25% steps from getSOC() levels 0-4
@@ -348,10 +357,10 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   Logger::log(LOG_CAT_BLE, "BLE chargeState=%d socPct=%d err=%d", (int)chargeStateVal, (int)socPct, (int)errVal);
 
   ble.print(F("AT+GATTCHAR=")); ble.print(chargeStateCharId); ble.print(F(",")); ble.println(chargeStateVal, HEX); ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(socCharId);         ble.print(F(",")); ble.println(socPct, HEX);         ble.waitForOK();
+  if (!ble.isConnected()) return;
   ble.print(F("AT+GATTCHAR=")); ble.print(errorCharId);       ble.print(F(",")); ble.println(errVal, HEX);         ble.waitForOK();
-
-  // Guard: bail before slow group if disconnected mid-loop.
   if (!ble.isConnected()) return;
 
   // --- Slow group: config/battery info — every 5 calls (~5s) ---

@@ -21,7 +21,8 @@ extern int32_t absMinVCharId;
 void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len);
 void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len);
 void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len);
-void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len);
+// 0xFF06 — on/off: 1-byte write (0x00 = off, 0x01 = on)
+void bleOnOffCallback(int32_t chars_id, uint8_t data[], uint16_t len);
 
 class Ble {
 public:
