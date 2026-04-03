@@ -65,26 +65,34 @@ void bleDisconnectCallback(void) {
 void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
-    Logger::log("BLE WRITE amp: [%02X %02X] val=%d", data[0], data[1], (int)val);
+    int prevAmp    = Config::getMaxCurrent();
+    int prevTargetV = Config::getTargetVoltage();
+    Logger::log("BLE SET max_current: [%02X %02X] %d -> %d (1/10th A)", data[0], data[1], prevAmp, (int)val);
     Config::setMaxCurrent((int)val);
-    Logger::log("BLE write: max current -> %d (1/10th A)", (int)val);
+    Logger::log("  EEPROM saved. next canWrite: targetV=%d amp=%d  (was: targetV=%d amp=%d)",
+                Config::getTargetVoltage(), Config::getMaxCurrent(), prevTargetV, prevAmp);
     pendingAmpEcho = val;
 }
 
 void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
-    Logger::log("BLE WRITE pct: [%02X %02X] val=%d", data[0], data[1], (int)val);
+    int prevPctX1000 = (int)(Config::getTargetPercentage() * 1000);
+    int prevTargetV  = Config::getTargetVoltage();
+    Logger::log("BLE SET target_pct: [%02X %02X] %d -> %d (pct*1000)", data[0], data[1], prevPctX1000, (int)val);
     Config::setTargetPercentage((float)val / 1000.0f);
-    Logger::log("BLE write: target pct -> %d/1000", (int)val);
+    Logger::log("  EEPROM saved. targetV: %d -> %d  (amp unchanged: %d)",
+                prevTargetV, Config::getTargetVoltage(), Config::getMaxCurrent());
     pendingPctEcho = val;
 }
 
 void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
+    int prevTime = Config::getMaxChargeTime();
+    Logger::log("BLE SET max_time: [%02X %02X] %d -> %d s (0=no limit)", data[0], data[1], prevTime, (int)val);
     Config::setMaxChargeTime((int)val);
-    Logger::log("BLE write: max charge time -> %d s", (int)val);
+    Logger::log("  EEPROM saved. timer limit now: %d s", Config::getMaxChargeTime());
     pendingTimeEcho = val;
 }
 

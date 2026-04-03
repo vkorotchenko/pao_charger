@@ -73,37 +73,61 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
   if (dataLen < 4) return;
   uint8_t cmd  = data[0];
   uint16_t val = ((uint16_t)data[2] << 8) | data[3];
+  Logger::log("CAN SET cmd=%d val=%d [%02X %02X %02X %02X]", (int)cmd, (int)val,
+              data[0], data[1], data[2], data[3]);
   switch (cmd) {
-    case CAN_CMD_SET_MAX_TIME:
+    case CAN_CMD_SET_MAX_TIME: {
+      int prev = Config::getMaxChargeTime();
       Config::setMaxChargeTime((int)val);
-      Logger::log("CAN config: max charge time -> %d s", (int)val);
+      Logger::log("  max_time: %d -> %d s (0=no limit). EEPROM saved.", prev, Config::getMaxChargeTime());
       break;
-    case CAN_CMD_SET_TARGET_PCT:
+    }
+    case CAN_CMD_SET_TARGET_PCT: {
+      int prevPct  = (int)(Config::getTargetPercentage() * 1000);
+      int prevTgtV = Config::getTargetVoltage();
       Config::setTargetPercentage((float)val / 1000.0f);
-      Logger::log("CAN config: target pct -> %d/1000", (int)val);
+      Logger::log("  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. EEPROM saved.",
+                  prevPct, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
-    case CAN_CMD_SET_TARGET_AMPS:
+    }
+    case CAN_CMD_SET_TARGET_AMPS: {
+      int prevAmp   = Config::getMaxCurrent();
+      int prevTgtV  = Config::getTargetVoltage();
       Config::setMaxCurrent((int)val);
-      Logger::log("CAN config: target amps -> %d (1/10th A)", (int)val);
+      Logger::log("  max_current: %d -> %d (1/10th A). targetV unchanged: %d. EEPROM saved.",
+                  prevAmp, Config::getMaxCurrent(), prevTgtV);
       break;
-    case CAN_CMD_SET_NOMINAL_VOLTAGE:
+    }
+    case CAN_CMD_SET_NOMINAL_VOLTAGE: {
+      int prev     = Config::getNominalVoltage();
+      int prevTgtV = Config::getTargetVoltage();
       Config::setNominalVoltage((int)val);
-      Logger::log("CAN config: nominal voltage -> %d (1/10th V)", (int)val);
+      Logger::log("  nominal_voltage: %d -> %d (1/10th V). targetV: %d -> %d. EEPROM saved.",
+                  prev, Config::getNominalVoltage(), prevTgtV, Config::getTargetVoltage());
       break;
-    case CAN_CMD_SET_NOMINAL_MAX_MULT:
+    }
+    case CAN_CMD_SET_NOMINAL_MAX_MULT: {
+      int prev     = (int)(Config::getNominalMaxMultiplier() * 100);
+      int prevTgtV = Config::getTargetVoltage();
       Config::setNominalMaxMultiplier((int)val);
-      Logger::log("CAN config: nominal max multiplier -> %d/100", (int)val);
+      Logger::log("  max_mult: %d -> %d (/100). targetV: %d -> %d. EEPROM saved.",
+                  prev, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
-    case CAN_CMD_SET_NOMINAL_MIN_MULT:
+    }
+    case CAN_CMD_SET_NOMINAL_MIN_MULT: {
+      int prev = (int)(Config::getNominalMinMultiplier() * 100);
       Config::setNominalMinMultiplier((int)val);
-      Logger::log("CAN config: nominal min multiplier -> %d/100", (int)val);
+      Logger::log("  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
       break;
-    case CAN_CMD_SET_AUTO_NOMINAL:
+    }
+    case CAN_CMD_SET_AUTO_NOMINAL: {
+      bool prev = Config::getAutoNominalFromCan();
       Config::setAutoNominalFromCan(val != 0);
-      Logger::log("CAN config: auto nominal from CAN -> %d", (int)val);
+      Logger::log("  auto_nominal: %d -> %d. EEPROM saved.", (int)prev, (int)(val != 0));
       break;
+    }
     default:
-      Logger::log("CAN config: unknown cmd %d", (int)cmd);
+      Logger::log("  unknown cmd %d — ignored", (int)cmd);
       break;
   }
 }
@@ -195,21 +219,27 @@ void canWrite()
   isCharging = checkTimer();
   char enableBit = (isCharging && chargerEnabled) ? 0x00 : 0x01;
 
-  unsigned char data[length] = {highByte(Config::getTargetVoltage()), lowByte(Config::getTargetVoltage()), highByte(Config::getMaxCurrent()), lowByte(Config::getMaxCurrent()), enableBit, 0x00, 0x00, 0x00};
+  // Read config once — same values go into the log and the CAN frame.
+  int tgtV = Config::getTargetVoltage();
+  int maxA = Config::getMaxCurrent();
 
+  Logger::log("canWrite -> elcon: targetV=%d maxA=%d enableBit=%d (runtime=%lu s)",
+              tgtV, maxA, (int)enableBit, running_time);
 
-  Logger::logOutgoingMsg(tcc_incoming_can_id ,ext, length, Config::getTargetVoltage(), Config::getMaxCurrent());
+  unsigned char data[length] = {highByte(tgtV), lowByte(tgtV), highByte(maxA), lowByte(maxA), enableBit, 0x00, 0x00, 0x00};
+
+  Logger::logOutgoingMsg(tcc_incoming_can_id, ext, length, tgtV, maxA);
   byte sendStatus = CAN.MCP_CAN::sendMsgBuf(tcc_incoming_can_id, ext, length, data);
 
   if (sendStatus == CAN_OK)
   { // Status byte for transmission
     Logger::log("canWrite result: CAN message sent successfully to charger");
-    error_state = 0;
+    error_state &= ~B00010000;  // clear comm-timeout bit only; preserve fault bits from canRead()
   }
   else
   {
     Logger::log("canWrite result: Error during message transmission to charger error: %s", sendStatus);
-    error_state = B00010000;
+    error_state |= B00010000;  // set comm-timeout bit; preserve any existing fault bits
   }
 }
 
