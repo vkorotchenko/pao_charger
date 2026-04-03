@@ -25,7 +25,6 @@ PINS
 #define tcc_send_interval 1000
 #define ble_interval 1000
 #define led_reset_interval 1000
-blam
 #define FULL_CHARGE_MULTIPLIER 1.05
 #define MID_CHARGE_MULTIPLIER 1.04
 
