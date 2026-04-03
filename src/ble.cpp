@@ -11,9 +11,13 @@ int32_t cVoltId;
 int32_t cAmpId;
 int32_t rTime;
 
-// Config characteristics (Read+Write 0x0A — no Notify, no CCCD).
+// Config characteristics (Read+Write+Notify 0x1A).
 // Mobile writes directly; current values broadcast in slow group (every 5s).
-// PROPERTIES must stay 0x0A: 0x1A adds CCCDs that overflow the nRF51822 attribute table.
+// PROPERTIES=0x1A (includes Notify bit 0x10): the Adafruit nRF51822 AT+GATTADDCHAR
+// implementation only sets the SoftDevice attribute WRITE permission correctly when
+// the Notify bit is present. Without it, mobile writes fail with WRITE_NOT_PERMITTED.
+// Mobile never calls monitor() on these chars → no CCCD is ever written → still
+// exactly 6 CCCDs total (within nRF51822 S110 limit).
 int32_t cfgAmpId;
 int32_t cfgPctId;
 int32_t cfgMaxTimeId;
@@ -48,9 +52,9 @@ void bleDisconnectCallback(void) {
 
 // --- Per-value write callbacks ---
 // Each reads [hi, lo] from data[] and updates EEPROM via Config::set*().
-// No write-back: 0xFF01/02/03 use PROPERTIES=0x0A (no Notify), so there is
-// no CCCD and no AT+GATTCHAR confirm needed. Mobile sees the updated value
-// on the next slow broadcast (every 5s).
+// No write-back: 0xFF01/02/03 use PROPERTIES=0x1A (Notify bit present for SoftDevice
+// write permission). Mobile never subscribes → no CCCD → no notification pipeline.
+// Mobile sees the updated value on the next slow broadcast (every 5s).
 
 void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
@@ -134,7 +138,9 @@ void Ble::setup() {
   // The following 7 characteristics are PROPERTIES=0x02 (Read-only, no CCCD):
   //   tVolt (0x2A1B), tAmp (0x2A1A), nomV (0xFF20), maxMult (0xFF21),
   //   minMult (0xFF22), absMaxV (0xFF23), absMinV (0xFF24)
-  // Config chars (0xFF01/02/03) use PROPERTIES=0x0A (Read+Write, no CCCD).
+  // Config chars (0xFF01/02/03) use PROPERTIES=0x1A (Read+Write+Notify). The Notify
+  // bit is required for write permission to work on the nRF51822 SoftDevice. Mobile
+  // never subscribes → no CCCD written → still 6 CCCDs total.
   Logger::log("Adding the Service definition (UUID = 0x27B0): ");
   bool success = ble.sendCommandWithIntReply( F("AT+GATTADDSERVICE=UUID=0x27B0"), &serviceId);
   if (! success) {
@@ -162,25 +168,28 @@ void Ble::setup() {
     Logger::log("Could not add char5");
   }
 
-  // Writable config characteristics (Read+Write, PROPERTIES=0x0A — no Notify, no CCCD).
+  // Writable config characteristics (Read+Write+Notify, PROPERTIES=0x1A).
   // Mobile writes directly; values broadcast in slow group (every 5s).
-  // MUST stay 0x0A: 0x1A adds CCCDs and overflows the nRF51822 attribute table.
+  // PROPERTIES=0x1A: Notify bit (0x10) MUST be present for the nRF51822 SoftDevice
+  // to set the attribute WRITE permission correctly. Without it (0x0A), mobile writes
+  // fail with WRITE_NOT_PERMITTED. Mobile never subscribes to these → no CCCD written
+  // → still exactly 6 CCCDs total (within the S110 per-connection limit).
   char cmd[80];
   int maxCurrent = Config::getMaxCurrent();
   int targetPct  = (int)(Config::getTargetPercentage() * 1000);
   int maxTime    = Config::getMaxChargeTime();
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxCurrent >> 8) & 0xFF, maxCurrent & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgAmpId);
   if (!success) Logger::log("Could not add cfg amp char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (targetPct >> 8) & 0xFF, targetPct & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgPctId);
   if (!success) Logger::log("Could not add cfg pct char");
 
-  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x0A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
+  snprintf(cmd, sizeof(cmd), "AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=2,MAX_LEN=2,VALUE=0x%02X-0x%02X",
            (maxTime >> 8) & 0xFF, maxTime & 0xFF);
   success = ble.sendCommandWithIntReply(cmd, &cfgMaxTimeId);
   if (!success) Logger::log("Could not add cfg max time char");
@@ -227,6 +236,48 @@ void Ble::setup() {
   /* Reset the device for the new service setting changes to take effect */
   Serial.print(F("Performing a SW reset (service changes require a reset): "));
   ble.reset();
+
+  // Seed read-only GATT characteristics with EEPROM values immediately after reset.
+  // mobile's readInitialState() fires on connect before the 1-second BLE timer loop
+  // runs, so without this seeding it would read 0 for all values.
+  // Config::get*() functions are safe here — they check EEPROM validity and fall back
+  // to compile-time defaults if EEPROM is uninitialized.
+  // cfgAmp/cfgPct/cfgMaxTime are already seeded above in AT+GATTADDCHAR — skip those.
+  Logger::log("BLE: seeding GATT table from EEPROM");
+  {
+    char initBuf[50];
+
+    int tVoltVal = Config::getTargetVoltage();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", tVoltId, tVoltVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    int tAmpVal = Config::getMaxCurrent();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", tAmpId, tAmpVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    uint16_t nomV = (uint16_t)Config::getNominalVoltage();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", nominalVoltCharId,
+             (uint8_t)(nomV >> 8), (uint8_t)(nomV & 0xFF));
+    ble.sendCommandCheckOK(initBuf);
+
+    uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", maxMultCharId, maxMultVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    uint8_t minMultVal = (uint8_t)(Config::getNominalMinMultiplier() * 100);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", minMultCharId, minMultVal);
+    ble.sendCommandCheckOK(initBuf);
+
+    uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", absMaxVCharId,
+             (uint8_t)(absMaxV >> 8), (uint8_t)(absMaxV & 0xFF));
+    ble.sendCommandCheckOK(initBuf);
+
+    uint16_t absMinV = (uint16_t)Config::getMinVoltage();
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", absMinVCharId,
+             (uint8_t)(absMinV >> 8), (uint8_t)(absMinV & 0xFF));
+    ble.sendCommandCheckOK(initBuf);
+  }
 }
 
 void Ble::poll() {
@@ -237,7 +288,15 @@ void Ble::poll() {
   if (needsRestartAdv && !bleConnected) {
     needsRestartAdv = false;
     Logger::log("BLE restarting advertising");
-    ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+    // Use ble.println() instead of sendCommandCheckOK() here.
+    // sendCommandCheckOK() calls waitForOK() which reads SPI bytes until it sees "OK".
+    // If mobile reconnects quickly, the nRF51822 queues a CONNECT event on SPI before
+    // the "OK" for AT+GAPSTARTADV. waitForOK() would consume and discard that CONNECT
+    // event, leaving bleConnected=false permanently despite the hardware being connected.
+    // ble.println() sends the command fire-and-forget; the "OK" is consumed by the next
+    // ble.update(10) call as an unrecognized event (silently skipped), and any CONNECT
+    // event arriving after is correctly dispatched to bleConnectCallback.
+    ble.println(F("AT+GAPSTARTADV"));
   } else if (needsRestartAdv) {
     needsRestartAdv = false;  // mobile already reconnected — no restart needed
   }
@@ -275,6 +334,11 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print(F("AT+GATTCHAR=")); ble.print(chargeStateCharId); ble.print(F(",")); ble.println(chargeStateVal, HEX); ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(socCharId);         ble.print(F(",")); ble.println(socPct, HEX);         ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(errorCharId);       ble.print(F(",")); ble.println(errVal, HEX);         ble.waitForOK();
+
+  // Guard: if mobile disconnected during the fast group sends (e.g. a CONNECT event was
+  // queued and will be picked up on the next poll()), exit now before the slow group
+  // fires 5+ more waitForOK() calls that would consume the queued CONNECT event.
+  if (!bleConnected) return;
 
   // --- Slow group: config/battery info — every 5 calls (~5s) ---
   if (loopCount % 5 == 0) {
