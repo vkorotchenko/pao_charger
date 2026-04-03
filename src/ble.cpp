@@ -248,33 +248,33 @@ void Ble::setup() {
     char initBuf[50];
 
     int tVoltVal = Config::getTargetVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", tVoltId, tVoltVal);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tVoltId, tVoltVal);
     ble.sendCommandCheckOK(initBuf);
 
     int tAmpVal = Config::getMaxCurrent();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", tAmpId, tAmpVal);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tAmpId, tAmpVal);
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", nominalVoltCharId,
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)nominalVoltCharId,
              (uint8_t)(nomV >> 8), (uint8_t)(nomV & 0xFF));
     ble.sendCommandCheckOK(initBuf);
 
     uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", maxMultCharId, maxMultVal);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)maxMultCharId, maxMultVal);
     ble.sendCommandCheckOK(initBuf);
 
     uint8_t minMultVal = (uint8_t)(Config::getNominalMinMultiplier() * 100);
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", minMultCharId, minMultVal);
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)minMultCharId, minMultVal);
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", absMaxVCharId,
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)absMaxVCharId,
              (uint8_t)(absMaxV >> 8), (uint8_t)(absMaxV & 0xFF));
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", absMinVCharId,
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)absMinVCharId,
              (uint8_t)(absMinV >> 8), (uint8_t)(absMinV & 0xFF));
     ble.sendCommandCheckOK(initBuf);
   }
@@ -307,7 +307,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
   // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
-  while (ble.update(0)) {}
+  ble.update(0);
 
   // loopCount drives the fast/slow split:
   //   Fast group (every call, ~1s): live telemetry + status
