@@ -44,16 +44,16 @@ static uint16_t pendingTimeEcho = UINT16_MAX;
 
 void bleConnectCallback(void) {
     bleConnected = true;
-    Logger::log("BLE CONNECT: bleConnected=true");
-    Logger::log("BLE connected");
+    Logger::log(LOG_CAT_BLE, "BLE CONNECT: bleConnected=true");
+    Logger::log(LOG_CAT_BLE, "BLE connected");
 }
 
 void bleDisconnectCallback(void) {
     if (!bleConnected) return;  // duplicate event — already handled
     bleConnected = false;
     needsRestartAdv = true;
-    Logger::log("BLE DISCONNECT: bleConnected=false");
-    Logger::log("BLE disconnected");
+    Logger::log(LOG_CAT_BLE, "BLE DISCONNECT: bleConnected=false");
+    Logger::log(LOG_CAT_BLE, "BLE disconnected");
 }
 
 // --- Per-value write callbacks ---
@@ -67,9 +67,9 @@ void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     int prevAmp    = Config::getMaxCurrent();
     int prevTargetV = Config::getTargetVoltage();
-    Logger::log("BLE SET max_current: [%02X %02X] %d -> %d (1/10th A)", data[0], data[1], prevAmp, (int)val);
+    Logger::log(LOG_CAT_BLE, "BLE SET max_current: [%02X %02X] %d -> %d (1/10th A)", data[0], data[1], prevAmp, (int)val);
     Config::setMaxCurrent((int)val);
-    Logger::log("  EEPROM saved. next canWrite: targetV=%d amp=%d  (was: targetV=%d amp=%d)",
+    Logger::log(LOG_CAT_BLE, "  EEPROM saved. next canWrite: targetV=%d amp=%d  (was: targetV=%d amp=%d)",
                 Config::getTargetVoltage(), Config::getMaxCurrent(), prevTargetV, prevAmp);
     pendingAmpEcho = val;
 }
@@ -79,9 +79,9 @@ void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     int prevPctX1000 = (int)(Config::getTargetPercentage() * 1000);
     int prevTargetV  = Config::getTargetVoltage();
-    Logger::log("BLE SET target_pct: [%02X %02X] %d -> %d (pct*1000)", data[0], data[1], prevPctX1000, (int)val);
+    Logger::log(LOG_CAT_BLE, "BLE SET target_pct: [%02X %02X] %d -> %d (pct*1000)", data[0], data[1], prevPctX1000, (int)val);
     Config::setTargetPercentage((float)val / 1000.0f);
-    Logger::log("  EEPROM saved. targetV: %d -> %d  (amp unchanged: %d)",
+    Logger::log(LOG_CAT_BLE, "  EEPROM saved. targetV: %d -> %d  (amp unchanged: %d)",
                 prevTargetV, Config::getTargetVoltage(), Config::getMaxCurrent());
     pendingPctEcho = val;
 }
@@ -90,9 +90,9 @@ void bleMaxTimeCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
     int prevTime = Config::getMaxChargeTime();
-    Logger::log("BLE SET max_time: [%02X %02X] %d -> %d s (0=no limit)", data[0], data[1], prevTime, (int)val);
+    Logger::log(LOG_CAT_BLE, "BLE SET max_time: [%02X %02X] %d -> %d s (0=no limit)", data[0], data[1], prevTime, (int)val);
     Config::setMaxChargeTime((int)val);
-    Logger::log("  EEPROM saved. timer limit now: %d s", Config::getMaxChargeTime());
+    Logger::log(LOG_CAT_BLE, "  EEPROM saved. timer limit now: %d s", Config::getMaxChargeTime());
     pendingTimeEcho = val;
 }
 
@@ -103,21 +103,21 @@ void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 4) return;
     uint8_t  cmd = data[0];
     uint16_t val = ((uint16_t)data[2] << 8) | data[3];
-    Logger::log("BLE CMD: cmd=%d val=%d", (int)cmd, (int)val);
+    Logger::log(LOG_CAT_BLE, "BLE CMD: cmd=%d val=%d", (int)cmd, (int)val);
     switch (cmd) {
         case 4:
             chargerEnabled = (val != 0);
             // NOTE: chargerEnabled is a runtime bool, NOT persisted to EEPROM.
             // If firmware reboots it resets to true regardless of the last BLE command.
             // Future improvement: persist to EEPROM so the stopped state survives resets.
-            Logger::log("BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
+            Logger::log(LOG_CAT_BLE, "BLE cmd: charger %s", chargerEnabled ? "enabled" : "stopped");
             break;
         case 5:
             Config::resetToDefaults();
-            Logger::log("BLE cmd: EEPROM reset to defaults");
+            Logger::log(LOG_CAT_BLE, "BLE cmd: EEPROM reset to defaults");
             break;
         default:
-            Logger::log("BLE cmd: unknown cmd %d (use direct char writes 0xFF01/02/03 for config)", (int)cmd);
+            Logger::log(LOG_CAT_BLE, "BLE cmd: unknown cmd %d (use direct char writes 0xFF01/02/03 for config)", (int)cmd);
             break;
     }
 }
@@ -126,27 +126,27 @@ void Ble::setup() {
 
   if ( !ble.begin(VERBOSE_MODE) )
   {
-    Logger::log("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?");
+    Logger::log(LOG_CAT_ERR, "Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?");
   }
 
   /* Perform a factory reset to make sure everything is in a known state */
-  Logger::log("Performing a factory reset: ");
+  Logger::log(LOG_CAT_BLE, "Performing a factory reset: ");
   if (! ble.factoryReset() ){
-       Logger::log("Couldn't factory reset");
+       Logger::log(LOG_CAT_ERR, "Couldn't factory reset");
   }
 
   /* Disable command echo from Bluefruit */
   ble.echo(false);
 
-  Logger::log("Requesting Bluefruit info:");
+  Logger::log(LOG_CAT_BLE, "Requesting Bluefruit info:");
   /* Print Bluefruit information */
   ble.info();
 
   /* Change the device name to make it easier to find */
-  Logger::log("Setting device name to %s': ", DISPLAY_NAME);
+  Logger::log(LOG_CAT_BLE, "Setting device name to %s': ", DISPLAY_NAME);
 
   if (! ble.sendCommandCheckOK(F("AT+GAPDEVNAME=" DISPLAY_NAME)) ) {
-    Logger::log("Could not set device name?");
+    Logger::log(LOG_CAT_ERR, "Could not set device name?");
   }
 
   /* Add the Service definition */
@@ -161,31 +161,31 @@ void Ble::setup() {
   // Config chars (0xFF01/02/03) use PROPERTIES=0x1A (Read+Write+Notify). The Notify
   // bit is required for write permission to work on the nRF51822 SoftDevice. Mobile
   // never subscribes → no CCCD written → still 6 CCCDs total.
-  Logger::log("Adding the Service definition (UUID = 0x27B0): ");
+  Logger::log(LOG_CAT_BLE, "Adding the Service definition (UUID = 0x27B0): ");
   bool success = ble.sendCommandWithIntReply( F("AT+GATTADDSERVICE=UUID=0x27B0"), &serviceId);
   if (! success) {
-    Logger::log("Could not add service");
+    Logger::log(LOG_CAT_ERR, "Could not add service");
   }
 
   success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1B, PROPERTIES=0x02, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tVoltId);
   if (! success) {
-    Logger::log("Could not add char1");
+    Logger::log(LOG_CAT_ERR, "Could not add char1");
   }
   success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2A1A, PROPERTIES=0x02, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &tAmpId);
   if (! success) {
-    Logger::log("Could not add char2");
+    Logger::log(LOG_CAT_ERR, "Could not add char2");
   }
   success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2BED, PROPERTIES=0x10, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &cVoltId);
   if (! success) {
-    Logger::log("Could not add char3");
+    Logger::log(LOG_CAT_ERR, "Could not add char3");
   }
   success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2BF0, PROPERTIES=0x10, MIN_LEN=1, MAX_LEN=5, VALUE=0"), &cAmpId);
   if (! success) {
-    Logger::log("Could not add char4");
+    Logger::log(LOG_CAT_ERR, "Could not add char4");
   }
   success = ble.sendCommandWithIntReply( F("AT+GATTADDCHAR=UUID=0x2BEE, PROPERTIES=0x10, MIN_LEN=1, MAX_LEN=10, VALUE=0"), &rTime);
   if (! success) {
-    Logger::log("Could not add char5");
+    Logger::log(LOG_CAT_ERR, "Could not add char5");
   }
 
   // Writable config characteristics (Read+Write+Notify, PROPERTIES=0x1A).
@@ -196,41 +196,41 @@ void Ble::setup() {
   // → still exactly 6 CCCDs total (within the S110 per-connection limit).
   // Seeded with VALUE=0 here; the seeding block after SW reset populates real values.
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF01,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgAmpId);
-  if (!success) Logger::log("Could not add cfg amp char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg amp char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF02,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgPctId);
-  if (!success) Logger::log("Could not add cfg pct char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg pct char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF03,PROPERTIES=0x1A,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &cfgMaxTimeId);
-  if (!success) Logger::log("Could not add cfg max time char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg max time char");
 
   // 0xFF05: ENABLE_CMD — start/stop only (cmd=4), 4-byte [cmd, 0, hi, lo]
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF05,PROPERTIES=0x0A,MIN_LEN=4,MAX_LEN=4,VALUE=00-00-00-00"), &cfgCmdId);
-  if (!success) Logger::log("Could not add cfg cmd char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add cfg cmd char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF10,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &chargeStateCharId);
-  if (!success) Logger::log("Could not add charge state char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add charge state char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF11,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &socCharId);
-  if (!success) Logger::log("Could not add soc char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add soc char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &errorCharId);
-  if (!success) Logger::log("Could not add error char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add error char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &nominalVoltCharId);
-  if (!success) Logger::log("Could not add nominal volt char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add nominal volt char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
-  if (!success) Logger::log("Could not add max mult char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add max mult char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
-  if (!success) Logger::log("Could not add min mult char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add min mult char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMaxVCharId);
-  if (!success) Logger::log("Could not add abs max volt char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add abs max volt char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMinVCharId);
-  if (!success) Logger::log("Could not add abs min volt char");
+  if (!success) Logger::log(LOG_CAT_ERR, "Could not add abs min volt char");
 
   // Register per-value write callbacks for direct config characteristics
   ble.setBleGattRxCallback(cfgAmpId,     bleAmpCallback);
@@ -252,7 +252,7 @@ void Ble::setup() {
   // runs, so without this seeding it would read 0 for all values.
   // Config::get*() functions are safe here — they check EEPROM validity and fall back
   // to compile-time defaults if EEPROM is uninitialized.
-  Logger::log("BLE: seeding GATT table from EEPROM");
+  Logger::log(LOG_CAT_BLE, "BLE: seeding GATT table from EEPROM");
   {
     char initBuf[50];
 
@@ -305,7 +305,7 @@ void Ble::poll() {
   // bleConnectCallback will have set bleConnected=true above — skip the restart.
   if (needsRestartAdv && !bleConnected) {
     needsRestartAdv = false;
-    Logger::log("BLE restarting advertising");
+    Logger::log(LOG_CAT_BLE, "BLE restarting advertising");
     // Use ble.println() instead of sendCommandCheckOK() here.
     // sendCommandCheckOK() calls waitForOK() which reads SPI bytes until it sees "OK".
     // If mobile reconnects quickly, the nRF51822 queues a CONNECT event on SPI before
@@ -321,7 +321,7 @@ void Ble::poll() {
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
-  Logger::log("BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
+  Logger::log(LOG_CAT_BLE, "BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
               (int)bleConnected, cVolt, cAmp, tVolt, (int)isCharging,
               (int)chargerEnabled, soc, error_state);
   if (!bleConnected) return;
@@ -329,7 +329,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
   // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
   ble.update(0);
-  Logger::log("BLE drained events");
+  Logger::log(LOG_CAT_BLE, "BLE drained events");
 
   // Flush any pending write-back echoes set by BLE write callbacks.
   // Done here (not in callbacks) to avoid SPI conflicts inside ble.update().
@@ -370,7 +370,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   // Error state: low byte of error_state
   uint8_t errVal = (uint8_t)(error_state & 0xFF);
 
-  Logger::log("BLE chargeState=%d socPct=%d err=%d", (int)chargeStateVal, (int)socPct, (int)errVal);
+  Logger::log(LOG_CAT_BLE, "BLE chargeState=%d socPct=%d err=%d", (int)chargeStateVal, (int)socPct, (int)errVal);
 
   ble.print(F("AT+GATTCHAR=")); ble.print(chargeStateCharId); ble.print(F(",")); ble.println(chargeStateVal, HEX); ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(socCharId);         ble.print(F(",")); ble.println(socPct, HEX);         ble.waitForOK();

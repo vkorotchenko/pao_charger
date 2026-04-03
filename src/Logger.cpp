@@ -1,6 +1,7 @@
 #include "Logger.h"
 
 Logger::LogLevel Logger::logLevel = Logger::Debug;
+uint8_t Logger::logMask = LOG_CAT_BLE;
 
 void Logger::setDebug() {
     logLevel = LogLevel::Debug;
@@ -13,173 +14,57 @@ boolean Logger::isDebug() {
     return logLevel == Debug;
 }
 
-/*
- * Output a log message (called by log(), console())
- *
- * Supports printf() like syntax:
- *
- * %% - outputs a '%' character
- * %s - prints the next parameter as string
- * %d - prints the next parameter as decimal
- * %f - prints the next parameter as double float
- * %x - prints the next parameter as hex value
- * %X - prints the next parameter as hex value with '0x' added before
- * %b - prints the next parameter as binary value
- * %B - prints the next parameter as binary value with '0b' added before
- * %l - prints the next parameter as long
- * %c - prints the next parameter as a character
- * %t - prints the next parameter as boolean ('T' or 'F')
- * %T - prints the next parameter as boolean ('true' or 'false')
- */
-void Logger::log(const char *message, ...) {
-      if (!Logger::isDebug()) {
-        return;
-    }
+void Logger::setLogMask(uint8_t mask) {
+    logMask = mask;
+}
+
+uint8_t Logger::getLogMask() {
+    return logMask;
+}
+
+void Logger::log(uint8_t category, const char *format, ...) {
+    if (!Logger::isDebug()) return;
+    if (!(logMask & category)) return;
     va_list args;
-    va_start(args, message);
-    Logger::logMessage(message, args);
+    va_start(args, format);
+    Logger::logMessage(format, args);
     va_end(args);
 }
 
-/*
- * Output a log message (called by log(), console())
- *
- * Supports printf() like syntax:
- *
- * %% - outputs a '%' character
- * %s - prints the next parameter as string
- * %d - prints the next parameter as decimal
- * %f - prints the next parameter as double float
- * %x - prints the next parameter as hex value
- * %X - prints the next parameter as hex value with '0x' added before
- * %b - prints the next parameter as binary value
- * %B - prints the next parameter as binary value with '0b' added before
- * %l - prints the next parameter as long
- * %c - prints the next parameter as a character
- * %t - prints the next parameter as boolean ('T' or 'F')
- * %T - prints the next parameter as boolean ('true' or 'false')
- */
-void Logger::print(const char *message, ...) {
+void Logger::log(const char *format, ...) {
+    if (!Logger::isDebug()) return;
+    if (!(logMask & LOG_CAT_SYS)) return;
     va_list args;
-    va_start(args, message);
-    Logger::logMessage(message, args);
+    va_start(args, format);
+    Logger::logMessage(format, args);
+    va_end(args);
+}
+
+void Logger::print(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    Logger::logMessage(format, args);
     va_end(args);
 }
 
 void Logger::logMessage(const char *format, va_list args) {
-    char data[1000];
-    vsprintf(data, format, args);
+    char data[200];
+    vsnprintf(data, sizeof(data), format, args);
     Serial.println(data);
-
-// Logger::logMessage(format, args);
-
 }
 
 void Logger::logIncomingMsg(unsigned long id, byte ext, byte len, float tVolt, float tAmp){
-    Logger::log("=== INCOMING: ");
-    Logger::log("====== id: %d", id);
-    Logger::log("====== ext %X: ", ext);
-    Logger::log("====== length %d: ", len);
-    Logger::log("====== volt %dV: ", tVolt);
-    Logger::log("====== amp: %f", tAmp);
+    Logger::log(LOG_CAT_CAN, "=== INCOMING: ");
+    Logger::log(LOG_CAT_CAN, "====== id: %d", id);
+    Logger::log(LOG_CAT_CAN, "====== ext %X: ", ext);
+    Logger::log(LOG_CAT_CAN, "====== length %d: ", len);
+    Logger::log(LOG_CAT_CAN, "====== volt %dV: ", tVolt);
+    Logger::log(LOG_CAT_CAN, "====== amp: %f", tAmp);
 }
 
 void Logger::logOutgoingMsg(unsigned long id, byte ext, byte len, float tVolt, int tAmp){
-    Logger::log("=== OUTGOING: ");
-    Logger::log("====== id dec: %d  hex: 0x%x", id, id);
-    Logger::log("====== volt dec: %.1f  hex: 0x%x", tVolt / 10.0, (int)tVolt);
-    Logger::log("====== amp dec: %.1f  hex: 0x%x", tAmp / 10.0, tAmp);
+    Logger::log(LOG_CAT_CAN, "=== OUTGOING: ");
+    Logger::log(LOG_CAT_CAN, "====== id dec: %d  hex: 0x%x", id, id);
+    Logger::log(LOG_CAT_CAN, "====== volt dec: %.1f  hex: 0x%x", tVolt / 10.0, (int)tVolt);
+    Logger::log(LOG_CAT_CAN, "====== amp dec: %.1f  hex: 0x%x", tAmp / 10.0, tAmp);
 }
-
-
-/*
- * Output a log message (called by log(), console())
- *
- * Supports printf() like syntax:
- *
- * %% - outputs a '%' character
- * %s - prints the next parameter as string
- * %d - prints the next parameter as decimal
- * %f - prints the next parameter as double float
- * %x - prints the next parameter as hex value
- * %X - prints the next parameter as hex value with '0x' added before
- * %b - prints the next parameter as binary value
- * %B - prints the next parameter as binary value with '0b' added before
- * %l - prints the next parameter as long
- * %c - prints the next parameter as a character
- * %t - prints the next parameter as boolean ('T' or 'F')
- * %T - prints the next parameter as boolean ('true' or 'false')
- */
-// void Logger::logMessage(const char *format, va_list args) {
-//     for (; *format != 0; ++format) {
-//         if (*format == '%') {
-//             ++format;
-//             if (*format == '\0')
-//                 break;
-//             if (*format == '%') {
-//                 Serial.println(F(*format));
-//                 continue;
-//             }
-//             if (*format == 's') {
-//                 register char *s = (char *) va_arg( args, int );
-//                 Serial.println(F(s));
-//                 continue;
-//             }
-//             if (*format == 'd' || *format == 'i') {
-                
-//                 Serial.println(String(va_arg( args, int ), DEC));
-//                 continue;
-//             }
-//             if (*format == 'f') {
-//                 Serial.println(String(va_arg( args, double ), 2));
-//                 continue;
-//             }
-//             if (*format == 'x') {
-//                  Serial.println(String(va_arg( args, int ), HEX));
-//                 continue;
-//             }
-//             if (*format == 'X') {
-//                 Serial.println(F("0x"));
-//                 Serial.println(String(va_arg( args, int ), HEX));
-//                 continue;
-//             }
-//             if (*format == 'b') {
-//                 Serial.println(String(va_arg( args, int ), BIN));
-//                 continue;
-//             }
-//             if (*format == 'B') {
-//                 Serial.println(F("0b"));
-//                 Serial.println(String(va_arg( args, int ), BIN));
-//                 continue;
-//             }
-//             if (*format == 'l') {
-//                 Serial.println(String(va_arg( args, long ), DEC));
-//                 continue;
-//             }
-
-//             if (*format == 'c') {
-//                 Serial.println(F(va_arg( args, int )));
-//                 continue;
-//             }
-//             if (*format == 't') {
-//                 if (va_arg( args, int ) == 1) {
-//                     Serial.println(F("T"));
-//                 } else {
-//                     Serial.println(F("F"));
-//                 }
-//                 continue;
-//             }
-//             if (*format == 'T') {
-//                 if (va_arg( args, int ) == 1) {
-//                     Serial.println(F("t"));
-//                 } else {
-//                     Serial.println(F("f"));
-//                 }
-//                 continue;
-//             }
-
-//         }
-//         Serial.println(F(*format));
-//     }
-//     Serial.println(F(""));
-// }

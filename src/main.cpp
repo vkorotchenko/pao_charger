@@ -72,20 +72,20 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
   if (dataLen < 4) return;
   uint8_t cmd  = data[0];
   uint16_t val = ((uint16_t)data[2] << 8) | data[3];
-  Logger::log("CAN SET cmd=%d val=%d [%02X %02X %02X %02X]", (int)cmd, (int)val,
+  Logger::log(LOG_CAT_CAN, "CAN SET cmd=%d val=%d [%02X %02X %02X %02X]", (int)cmd, (int)val,
               data[0], data[1], data[2], data[3]);
   switch (cmd) {
     case CAN_CMD_SET_MAX_TIME: {
       int prev = Config::getMaxChargeTime();
       Config::setMaxChargeTime((int)val);
-      Logger::log("  max_time: %d -> %d s (0=no limit). EEPROM saved.", prev, Config::getMaxChargeTime());
+      Logger::log(LOG_CAT_CAN, "  max_time: %d -> %d s (0=no limit). EEPROM saved.", prev, Config::getMaxChargeTime());
       break;
     }
     case CAN_CMD_SET_TARGET_PCT: {
       int prevPct  = (int)(Config::getTargetPercentage() * 1000);
       int prevTgtV = Config::getTargetVoltage();
       Config::setTargetPercentage((float)val / 1000.0f);
-      Logger::log("  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. EEPROM saved.",
                   prevPct, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
@@ -93,7 +93,7 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prevAmp   = Config::getMaxCurrent();
       int prevTgtV  = Config::getTargetVoltage();
       Config::setMaxCurrent((int)val);
-      Logger::log("  max_current: %d -> %d (1/10th A). targetV unchanged: %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_current: %d -> %d (1/10th A). targetV unchanged: %d. EEPROM saved.",
                   prevAmp, Config::getMaxCurrent(), prevTgtV);
       break;
     }
@@ -101,7 +101,7 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prev     = Config::getNominalVoltage();
       int prevTgtV = Config::getTargetVoltage();
       Config::setNominalVoltage((int)val);
-      Logger::log("  nominal_voltage: %d -> %d (1/10th V). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  nominal_voltage: %d -> %d (1/10th V). targetV: %d -> %d. EEPROM saved.",
                   prev, Config::getNominalVoltage(), prevTgtV, Config::getTargetVoltage());
       break;
     }
@@ -109,24 +109,24 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prev     = (int)(Config::getNominalMaxMultiplier() * 100);
       int prevTgtV = Config::getTargetVoltage();
       Config::setNominalMaxMultiplier((int)val);
-      Logger::log("  max_mult: %d -> %d (/100). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_mult: %d -> %d (/100). targetV: %d -> %d. EEPROM saved.",
                   prev, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
     case CAN_CMD_SET_NOMINAL_MIN_MULT: {
       int prev = (int)(Config::getNominalMinMultiplier() * 100);
       Config::setNominalMinMultiplier((int)val);
-      Logger::log("  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
+      Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
       break;
     }
     case CAN_CMD_SET_AUTO_NOMINAL: {
       bool prev = Config::getAutoNominalFromCan();
       Config::setAutoNominalFromCan(val != 0);
-      Logger::log("  auto_nominal: %d -> %d. EEPROM saved.", (int)prev, (int)(val != 0));
+      Logger::log(LOG_CAT_CAN, "  auto_nominal: %d -> %d. EEPROM saved.", (int)prev, (int)(val != 0));
       break;
     }
     default:
-      Logger::log("  unknown cmd %d — ignored", (int)cmd);
+      Logger::log(LOG_CAT_CAN, "  unknown cmd %d — ignored", (int)cmd);
       break;
   }
 }
@@ -138,7 +138,7 @@ void canRead()
     CAN.readMsgBuf(&len, buf);
     unsigned long receiveId = CAN.getCanId();
 
-    Logger::log("== INCOMING CAN -- id: %d");
+    Logger::log(LOG_CAT_CAN, "== INCOMING CAN -- id: %d", receiveId);
 
     if (receiveId == tcc_outgoing_can_id)
     {
@@ -153,11 +153,11 @@ void canRead()
         error_state = 0;
       } else {
         error_state = buf[4];
-        if (buf[4] & B00000001) Logger::log("Error: hardware failure");
-        if (buf[4] & B00000010) Logger::log("Error: overheating");
-        if (buf[4] & B00000100) Logger::log("Error: input voltage wrong");
-        if (buf[4] & B00001000) Logger::log("Error: charger off (reverse polarity protection)");
-        if (buf[4] & B00010000) Logger::log("Error: communication timeout");
+        if (buf[4] & B00000001) Logger::log(LOG_CAT_ERR, "Error: hardware failure");
+        if (buf[4] & B00000010) Logger::log(LOG_CAT_ERR, "Error: overheating");
+        if (buf[4] & B00000100) Logger::log(LOG_CAT_ERR, "Error: input voltage wrong");
+        if (buf[4] & B00001000) Logger::log(LOG_CAT_ERR, "Error: charger off (reverse polarity protection)");
+        if (buf[4] & B00010000) Logger::log(LOG_CAT_ERR, "Error: communication timeout");
       }
     }
     else if (receiveId == Config::getConfigSetId())
@@ -169,7 +169,7 @@ void canRead()
       // Bat_Voltage: bytes 0-1, big-endian, 1/10th V (DMOC 0x650)
       uint16_t rawVoltage = ((uint16_t)buf[0] << 8) | buf[1];
       Config::setNominalVoltage((int)rawVoltage);
-      Logger::log("Auto nominal: set from DMOC 0x650 -> %d (1/10th V)", (int)rawVoltage);
+      Logger::log(LOG_CAT_CAN, "Auto nominal: set from DMOC 0x650 -> %d (1/10th V)", (int)rawVoltage);
     }
   }
 }
@@ -222,7 +222,7 @@ void canWrite()
   int tgtV = Config::getTargetVoltage();
   int maxA = Config::getMaxCurrent();
 
-  Logger::log("canWrite -> elcon: targetV=%d maxA=%d enableBit=%d (runtime=%lu s)",
+  Logger::log(LOG_CAT_CAN, "canWrite -> elcon: targetV=%d maxA=%d enableBit=%d (runtime=%lu s)",
               tgtV, maxA, (int)enableBit, running_time);
 
   unsigned char data[length] = {highByte(tgtV), lowByte(tgtV), highByte(maxA), lowByte(maxA), enableBit, 0x00, 0x00, 0x00};
@@ -232,12 +232,12 @@ void canWrite()
 
   if (sendStatus == CAN_OK)
   { // Status byte for transmission
-    Logger::log("canWrite result: CAN message sent successfully to charger");
+    Logger::log(LOG_CAT_CAN, "canWrite result: CAN message sent successfully to charger");
     error_state &= ~B00010000;  // clear comm-timeout bit only; preserve fault bits from canRead()
   }
   else
   {
-    Logger::log("canWrite result: Error during message transmission to charger error: %s", sendStatus);
+    Logger::log(LOG_CAT_ERR, "canWrite result: Error during message transmission to charger error: %d", (int)sendStatus);
     error_state |= B00010000;  // set comm-timeout bit; preserve any existing fault bits
   }
 }
@@ -255,13 +255,13 @@ void setup()
 
   while (CAN_OK != CAN.begin(Config::getCanSpeed()))
   {
-    Logger::log("waiting for CAN to intialize");
+    Logger::log(LOG_CAT_SYS, "waiting for CAN to intialize");
     delay(200);
   }
 
   charge_start_time = millis();
 
-  Logger::log("CAN initialization successful");
+  Logger::log(LOG_CAT_SYS, "CAN initialization successful");
   timer.setInterval(tcc_send_interval, canWrite);
   timer.setInterval(ble_interval, send_ble_info);
   timer.setInterval(config_broadcast_interval, canWriteConfig);

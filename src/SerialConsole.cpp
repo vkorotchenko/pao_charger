@@ -161,6 +161,27 @@ void SerialConsole::handleConfigCmd()
 
         Logger::print("Setting debug mode to %t", newValue);
     }
+    else if (cmdString == String("LOG"))
+    {
+        // Accept numeric mask or keyword
+        String valStr = String((char *)(cmdBuffer + i));
+        valStr.toUpperCase();
+        uint8_t mask;
+        if (valStr == "ALL")        { mask = LOG_CAT_ALL; }
+        else if (valStr == "NONE")  { mask = 0x00; }
+        else if (valStr == "CAN")   { mask = LOG_CAT_CAN; }
+        else if (valStr == "BLE")   { mask = LOG_CAT_BLE; }
+        else if (valStr == "ERR")   { mask = LOG_CAT_ERR; }
+        else if (valStr == "SYS")   { mask = LOG_CAT_SYS; }
+        else                        { mask = (uint8_t)newValue; }
+        Logger::setLogMask(mask);
+        Logger::print("Log mask set to 0x%02X (CAN=%d BLE=%d ERR=%d SYS=%d)",
+                      mask,
+                      (int)!!(mask & LOG_CAT_CAN),
+                      (int)!!(mask & LOG_CAT_BLE),
+                      (int)!!(mask & LOG_CAT_ERR),
+                      (int)!!(mask & LOG_CAT_SYS));
+    }
     else if (cmdString == String("TARGET"))
     {
         if (newValue < 0 || newValue > 2000)
@@ -228,6 +249,8 @@ void SerialConsole::printHelpMenu()
     Logger::print("VOLT : Setting nominal voltage (tenth of a volt) 320.1 V: `VOLT=3201`");
     Logger::print("AMP : Setting max charge current (tenth of an Amp) 20.1 Amp: `AMP=201`");
     Logger::print("DEBUG : Set debug mode, value is not persisted default to off on boot: on: `DEBUG=1` off: DEBUG=0");
+    Logger::print("LOG   : Set log category filter (requires DEBUG=1). Keywords: ALL, NONE, CAN, BLE, ERR, SYS");
+    Logger::print("        or numeric bitmask (CAN=1 BLE=2 ERR=4 SYS=8): `LOG=ALL` `LOG=BLE` `LOG=3`");
     Logger::print("TARGET : set target charging percentage. 90.5% 0 t0 disable : `TARGET=905`");
     Logger::print("MAX_TIME : Set max charging time (seconds) 0 to disable: 23h 26m 13s: `MAX_TIME=84373`");
 }

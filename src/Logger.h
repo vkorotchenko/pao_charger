@@ -30,6 +30,13 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+// Log category bitmask constants
+#define LOG_CAT_CAN  0x01   // CAN bus messages
+#define LOG_CAT_BLE  0x02   // Bluetooth/BLE messages
+#define LOG_CAT_ERR  0x04   // Errors
+#define LOG_CAT_SYS  0x08   // System/general messages
+#define LOG_CAT_ALL  0x0F   // All categories
+
 class Logger {
 public:
     enum LogLevel {
@@ -38,18 +45,24 @@ public:
     static void setDebug();
     static void setInfo();
     static boolean isDebug();
-    static void log(const char *, ...);
-    static void print(const char *, ...);
-    // static void logMessage(const char *, ...);
+    static void setLogMask(uint8_t mask);
+    static uint8_t getLogMask();
+
+    // Log with explicit category (only prints if debug on AND category is in logMask)
+    static void log(uint8_t category, const char *format, ...);
+
+    // Log without category — maps to LOG_CAT_SYS
+    static void log(const char *format, ...);
+
+    static void print(const char *format, ...);
     static void logIncomingMsg(unsigned long id, byte ext, byte len, float tVolt, float tAmp);
     static void logOutgoingMsg(unsigned long id, byte ext, byte len, float tVolt, int tAmp);
 private:
     static LogLevel logLevel;
+    static uint8_t logMask;
     static uint32_t lastLogTime;
 
     static void logMessage(const char *format, va_list args);
 };
 
 #endif /* LOGGER_H_ */
-
-
