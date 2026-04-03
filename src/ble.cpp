@@ -212,7 +212,7 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &errorCharId);
   if (!success) Logger::log("Could not add error char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &nominalVoltCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &nominalVoltCharId);
   if (!success) Logger::log("Could not add nominal volt char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
@@ -221,10 +221,10 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
   if (!success) Logger::log("Could not add min mult char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMaxVCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMaxVCharId);
   if (!success) Logger::log("Could not add abs max volt char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x02,MIN_LEN=2,MAX_LEN=2,VALUE=00-00"), &absMinVCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMinVCharId);
   if (!success) Logger::log("Could not add abs min volt char");
 
   // Register per-value write callbacks for direct config characteristics
@@ -261,8 +261,7 @@ void Ble::setup() {
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)nominalVoltCharId,
-             (uint8_t)(nomV >> 8), (uint8_t)(nomV & 0xFF));
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)nominalVoltCharId, (int)nomV);
     ble.sendCommandCheckOK(initBuf);
 
     uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
@@ -274,13 +273,11 @@ void Ble::setup() {
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)absMaxVCharId,
-             (uint8_t)(absMaxV >> 8), (uint8_t)(absMaxV & 0xFF));
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMaxVCharId, (int)absMaxV);
     ble.sendCommandCheckOK(initBuf);
 
     uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,0x%02X-0x%02X", (int)absMinVCharId,
-             (uint8_t)(absMinV >> 8), (uint8_t)(absMinV & 0xFF));
+    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMinVCharId, (int)absMinV);
     ble.sendCommandCheckOK(initBuf);
   }
 }
@@ -362,8 +359,7 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
     char hexBuf[10];
 
     uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-    snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(nomV >> 8), (uint8_t)(nomV & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(nominalVoltCharId); ble.print(F(",")); ble.println(hexBuf); ble.waitForOK();
+    ble.print(F("AT+GATTCHAR=")); ble.print(nominalVoltCharId); ble.print(F(",")); ble.println(nomV, HEX); ble.waitForOK();
 
     uint8_t maxMult = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
     ble.print(F("AT+GATTCHAR=")); ble.print(maxMultCharId); ble.print(F(",")); ble.println(maxMult, HEX); ble.waitForOK();
@@ -372,12 +368,10 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
     ble.print(F("AT+GATTCHAR=")); ble.print(minMultCharId); ble.print(F(",")); ble.println(minMult, HEX); ble.waitForOK();
 
     uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-    snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(absMaxV >> 8), (uint8_t)(absMaxV & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(absMaxVCharId); ble.print(F(",")); ble.println(hexBuf); ble.waitForOK();
+    ble.print(F("AT+GATTCHAR=")); ble.print(absMaxVCharId); ble.print(F(",")); ble.println(absMaxV, HEX); ble.waitForOK();
 
     uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-    snprintf(hexBuf, sizeof(hexBuf), "0x%02X-0x%02X", (uint8_t)(absMinV >> 8), (uint8_t)(absMinV & 0xFF));
-    ble.print(F("AT+GATTCHAR=")); ble.print(absMinVCharId); ble.print(F(",")); ble.println(hexBuf); ble.waitForOK();
+    ble.print(F("AT+GATTCHAR=")); ble.print(absMinVCharId); ble.print(F(",")); ble.println(absMinV, HEX); ble.waitForOK();
 
     char cfgBuf[10];
 
