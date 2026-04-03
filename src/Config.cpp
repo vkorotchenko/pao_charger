@@ -12,12 +12,16 @@ float Config::getMinVoltage()
 
 float Config::getNominalMaxMultiplier()
 {
-    return Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) / 100.0f;
+    int raw = Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT);
+    if (raw < 50 || raw > 200) return NOMINAL_MAX_MULT_DEFAULT / 100.0f;
+    return raw / 100.0f;
 }
 
 float Config::getNominalMinMultiplier()
 {
-    return Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT) / 100.0f;
+    int raw = Config::getValueFromEEPROM(NOMINAL_MIN_MULT_DEFAULT, EEPROM_NOMINAL_MIN_MULT);
+    if (raw < 50 || raw > 200) return NOMINAL_MIN_MULT_DEFAULT / 100.0f;
+    return raw / 100.0f;
 }
 
 bool Config::getAutoNominalFromCan()

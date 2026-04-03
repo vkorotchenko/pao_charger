@@ -305,6 +305,10 @@ void Ble::poll() {
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
   if (!bleConnected) return;
 
+  // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
+  // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
+  while (ble.update(0)) {}
+
   // loopCount drives the fast/slow split:
   //   Fast group (every call, ~1s): live telemetry + status
   //   Slow group (every 5 calls, ~5s): config & battery-info values
@@ -320,10 +324,12 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print(F("AT+GATTCHAR=")); ble.print(cAmpId);  ble.print(F(",")); ble.println(cAmp, HEX);  ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(rTime);   ble.print(F(",")); ble.println(running_time, HEX); ble.waitForOK();
 
-  // Charge state: 0=NOT_CHARGING, 1=CHARGING, 2=COMPLETE, 3=STOPPED_BY_USER
-  uint8_t chargeStateVal = 0;
-  if (!chargerEnabled) { chargeStateVal = 3; }
-  else if (isCharging)  { chargeStateVal = (soc >= 4) ? 2 : 1; }
+  // Charge state: 0=STOPPED, 1=ENABLED_IDLE, 2=CHARGING, 3=COMPLETE
+  uint8_t chargeStateVal;
+  if (!chargerEnabled)         { chargeStateVal = 0; }  // STOPPED
+  else if (!isCharging)        { chargeStateVal = 1; }  // ENABLED_IDLE
+  else if (soc >= 4)           { chargeStateVal = 3; }  // COMPLETE
+  else                         { chargeStateVal = 2; }  // CHARGING
 
   // SOC percent: rough 25% steps from getSOC() levels 0-4
   uint8_t socPct = (uint8_t)min(100, soc * 25);
