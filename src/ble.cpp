@@ -35,24 +35,18 @@ int32_t minMultCharId;
 int32_t absMaxVCharId;
 int32_t absMinVCharId;
 
-static bool bleConnected = false;
 static bool needsRestartAdv = false;
 
 static uint16_t pendingAmpEcho  = UINT16_MAX;
 static uint16_t pendingPctEcho  = UINT16_MAX;
 static uint16_t pendingTimeEcho = UINT16_MAX;
 
-void bleConnectCallback(void) {
-    bleConnected = true;
-    Logger::log(LOG_CAT_BLE, "BLE CONNECT: bleConnected=true");
-    Logger::log(LOG_CAT_BLE, "BLE connected");
-}
+// No connect callback — AT+EVENTENABLE replaces the mask each call, so registering
+// both connect (0x1) and disconnect (0x2) results in only the last one being active.
+// Connection state is polled directly via ble.isConnected() (AT+GAPGETCONN) in loop().
 
 void bleDisconnectCallback(void) {
-    if (!bleConnected) return;  // duplicate event — already handled
-    bleConnected = false;
     needsRestartAdv = true;
-    Logger::log(LOG_CAT_BLE, "BLE DISCONNECT: bleConnected=false");
     Logger::log(LOG_CAT_BLE, "BLE disconnected");
 }
 
@@ -232,20 +226,22 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF24,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMinVCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add abs min volt char");
 
-  // Register per-value write callbacks for direct config characteristics
-  ble.setBleGattRxCallback(cfgAmpId,     bleAmpCallback);
-  ble.setBleGattRxCallback(cfgPctId,     blePctCallback);
-  ble.setBleGattRxCallback(cfgMaxTimeId, bleMaxTimeCallback);
-  ble.setBleGattRxCallback(cfgCmdId,     bleCmdCallback);  // start/stop only
-
-  ble.setConnectCallback(bleConnectCallback);
-  ble.setDisconnectCallback(bleDisconnectCallback);
-
   ble.sendCommandCheckOK( F("AT+GAPSETADVDATA=02-01-06-05-02-0d-18-0a-18") );
 
   /* Reset the device for the new service setting changes to take effect */
   Serial.print(F("Performing a SW reset (service changes require a reset): "));
   ble.reset();
+
+  // Register callbacks AFTER reset — ble.reset() sends ATZ which clears the
+  // AT+EVENTENABLE settings on the nRF51822. Registering before reset means the
+  // chip never signals CONNECT/DISCONNECT/GATT-write events, so bleConnected
+  // would stay false permanently.
+  ble.setBleGattRxCallback(cfgAmpId,     bleAmpCallback);
+  ble.setBleGattRxCallback(cfgPctId,     blePctCallback);
+  ble.setBleGattRxCallback(cfgMaxTimeId, bleMaxTimeCallback);
+  ble.setBleGattRxCallback(cfgCmdId,     bleCmdCallback);  // start/stop only
+
+  ble.setDisconnectCallback(bleDisconnectCallback);
 
   // Seed GATT characteristics with EEPROM values immediately after reset.
   // mobile's readInitialState() fires on connect before the 1-second BLE timer loop
@@ -299,37 +295,27 @@ void Ble::setup() {
 }
 
 void Ble::poll() {
-  ble.update(10);  // process incoming BLE writes and connection events first
-  // Defer AT+GAPSTARTADV until after ble.update() so any queued CONNECT event
-  // is processed before we restart advertising. If mobile reconnected quickly,
-  // bleConnectCallback will have set bleConnected=true above — skip the restart.
-  if (needsRestartAdv && !bleConnected) {
+  ble.update(10);  // process incoming BLE writes and GATT write events
+  if (needsRestartAdv) {
     needsRestartAdv = false;
-    Logger::log(LOG_CAT_BLE, "BLE restarting advertising");
-    // Use ble.println() instead of sendCommandCheckOK() here.
-    // sendCommandCheckOK() calls waitForOK() which reads SPI bytes until it sees "OK".
-    // If mobile reconnects quickly, the nRF51822 queues a CONNECT event on SPI before
-    // the "OK" for AT+GAPSTARTADV. waitForOK() would consume and discard that CONNECT
-    // event, leaving bleConnected=false permanently despite the hardware being connected.
-    // ble.println() sends the command fire-and-forget; the "OK" is consumed by the next
-    // ble.update(10) call as an unrecognized event (silently skipped), and any CONNECT
-    // event arriving after is correctly dispatched to bleConnectCallback.
-    ble.println(F("AT+GAPSTARTADV"));
-  } else if (needsRestartAdv) {
-    needsRestartAdv = false;  // mobile already reconnected — no restart needed
+    if (!ble.isConnected()) {
+      Logger::log(LOG_CAT_BLE, "BLE restarting advertising");
+      ble.sendCommandCheckOK(F("AT+GAPSTARTADV"));
+    }
   }
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
-  Logger::log(LOG_CAT_BLE, "BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
-              (int)bleConnected, cVolt, cAmp, tVolt, (int)isCharging,
-              (int)chargerEnabled, soc, error_state);
-  if (!bleConnected) return;
-
-  // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
-  // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
+  // Use AT+GAPGETCONN for reliable connection state — avoids the AT+EVENTENABLE
+  // mask-replacement problem where registering both connect and disconnect callbacks
+  // leaves only one enabled. Also drain pending GATT write events before AT commands.
+  bool connected = ble.isConnected();
   ble.update(0);
-  Logger::log(LOG_CAT_BLE, "BLE drained events");
+
+  Logger::log(LOG_CAT_BLE, "BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
+              (int)connected, cVolt, cAmp, tVolt, (int)isCharging,
+              (int)chargerEnabled, soc, error_state);
+  if (!connected) return;
 
   // Flush any pending write-back echoes set by BLE write callbacks.
   // Done here (not in callbacks) to avoid SPI conflicts inside ble.update().
@@ -376,10 +362,8 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
   ble.print(F("AT+GATTCHAR=")); ble.print(socCharId);         ble.print(F(",")); ble.println(socPct, HEX);         ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(errorCharId);       ble.print(F(",")); ble.println(errVal, HEX);         ble.waitForOK();
 
-  // Guard: if mobile disconnected during the fast group sends (e.g. a CONNECT event was
-  // queued and will be picked up on the next poll()), exit now before the slow group
-  // fires 5+ more waitForOK() calls that would consume the queued CONNECT event.
-  if (!bleConnected) return;
+  // Guard: bail before slow group if disconnected mid-loop.
+  if (!ble.isConnected()) return;
 
   // --- Slow group: config/battery info — every 5 calls (~5s) ---
   if (loopCount % 5 == 0) {
