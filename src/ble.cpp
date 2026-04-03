@@ -40,6 +40,7 @@ static bool needsRestartAdv = false;
 
 void bleConnectCallback(void) {
     bleConnected = true;
+    Logger::log("BLE CONNECT: bleConnected=true");
     Logger::log("BLE connected");
 }
 
@@ -47,6 +48,7 @@ void bleDisconnectCallback(void) {
     if (!bleConnected) return;  // duplicate event — already handled
     bleConnected = false;
     needsRestartAdv = true;
+    Logger::log("BLE DISCONNECT: bleConnected=false");
     Logger::log("BLE disconnected");
 }
 
@@ -59,6 +61,7 @@ void bleDisconnectCallback(void) {
 void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
+    Logger::log("BLE WRITE amp: [%02X %02X] val=%d", data[0], data[1], (int)val);
     Config::setMaxCurrent((int)val);
     Logger::log("BLE write: max current -> %d (1/10th A)", (int)val);
 }
@@ -66,6 +69,7 @@ void bleAmpCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
 void blePctCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 2) return;
     uint16_t val = ((uint16_t)data[0] << 8) | data[1];
+    Logger::log("BLE WRITE pct: [%02X %02X] val=%d", data[0], data[1], (int)val);
     Config::setTargetPercentage((float)val / 1000.0f);
     Logger::log("BLE write: target pct -> %d/1000", (int)val);
 }
@@ -84,6 +88,7 @@ void bleCmdCallback(int32_t chars_id, uint8_t data[], uint16_t len) {
     if (len < 4) return;
     uint8_t  cmd = data[0];
     uint16_t val = ((uint16_t)data[2] << 8) | data[3];
+    Logger::log("BLE CMD: cmd=%d val=%d", (int)cmd, (int)val);
     switch (cmd) {
         case 4:
             chargerEnabled = (val != 0);
@@ -303,11 +308,16 @@ void Ble::poll() {
 }
 
 void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_time, bool isCharging, int soc, int error_state){
+  Logger::log("BLE loop: conn=%d cV=%d cA=%d tV=%d isChg=%d enabled=%d soc=%d err=%d",
+              (int)bleConnected, cVolt, cAmp, tVolt, (int)isCharging,
+              (int)chargerEnabled, soc, error_state);
   if (!bleConnected) return;
 
   // Drain any pending BLE events (WRITE callbacks, etc.) before AT commands block them.
   // waitForOK() consumes events; process them first so bleAmpCallback etc. fire correctly.
-  ble.update(0);
+  int drained = 0;
+  while (ble.update(0)) { drained++; }
+  Logger::log("BLE drained %d events", drained);
 
   // loopCount drives the fast/slow split:
   //   Fast group (every call, ~1s): live telemetry + status
@@ -336,6 +346,8 @@ void Ble::loop(int tVolt, int tAmp, int cVolt, int cAmp, unsigned long running_t
 
   // Error state: low byte of error_state
   uint8_t errVal = (uint8_t)(error_state & 0xFF);
+
+  Logger::log("BLE chargeState=%d socPct=%d err=%d", (int)chargeStateVal, (int)socPct, (int)errVal);
 
   ble.print(F("AT+GATTCHAR=")); ble.print(chargeStateCharId); ble.print(F(",")); ble.println(chargeStateVal, HEX); ble.waitForOK();
   ble.print(F("AT+GATTCHAR=")); ble.print(socCharId);         ble.print(F(",")); ble.println(socPct, HEX);         ble.waitForOK();
