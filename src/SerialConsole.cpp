@@ -121,16 +121,7 @@ void SerialConsole::handleConfigCmd()
     newValue = strtol((char *)(cmdBuffer + i), NULL, 0);
 
     cmdString.toUpperCase();
-    if (cmdString == String("VOLT"))
-    {
-        if (newValue < 1 || newValue > 10000)
-        {
-            Logger::print("Please enter a value above 0 and below 10000");
-        }
-        Logger::print("Setting nominal voltage to  %s V", (float)newValue / 10.0);
-        Config::setNominalVoltage(newValue);
-    }
-    else if (cmdString == String("AMP"))
+    if (cmdString == String("AMP"))
     {
         if (newValue < 1 || newValue > 5000)
         {

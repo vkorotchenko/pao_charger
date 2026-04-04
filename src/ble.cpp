@@ -230,53 +230,53 @@ void Ble::setup() {
   // Config::get*() functions are safe here — they check EEPROM validity and fall back
   // to compile-time defaults if EEPROM is uninitialized.
   Logger::log(LOG_CAT_BLE, "BLE: seeding GATT table from EEPROM");
-  {
-    char initBuf[50];
 
-    int tVoltVal = Config::getTargetVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tVoltId, tVoltVal);
-    ble.sendCommandCheckOK(initBuf);
+  char initBuf[50];
 
-    int tAmpVal = Config::getMaxCurrent();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tAmpId, tAmpVal);
-    ble.sendCommandCheckOK(initBuf);
+  int tVoltVal = Config::getTargetVoltage();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tVoltId, tVoltVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)nominalVoltCharId, (int)nomV);
-    ble.sendCommandCheckOK(initBuf);
+  int tAmpVal = Config::getMaxCurrent();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tAmpId, tAmpVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)maxMultCharId, maxMultVal);
-    ble.sendCommandCheckOK(initBuf);
+  uint16_t nomV = (uint16_t)Config::getNominalVoltage();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)nominalVoltCharId, (int)nomV);
+  ble.sendCommandCheckOK(initBuf);
 
-    uint8_t minMultVal = (uint8_t)(Config::getNominalMinMultiplier() * 100);
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)minMultCharId, minMultVal);
-    ble.sendCommandCheckOK(initBuf);
+  uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)maxMultCharId, maxMultVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMaxVCharId, (int)absMaxV);
-    ble.sendCommandCheckOK(initBuf);
+  uint8_t minMultVal = (uint8_t)(Config::getNominalMinMultiplier() * 100);
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)minMultCharId, minMultVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMinVCharId, (int)absMinV);
-    ble.sendCommandCheckOK(initBuf);
+  uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMaxVCharId, (int)absMaxV);
+  ble.sendCommandCheckOK(initBuf);
 
-    int cfgAmpVal  = Config::getMaxCurrent();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgAmpId, cfgAmpVal);
-    ble.sendCommandCheckOK(initBuf);
+  uint16_t absMinV = (uint16_t)Config::getMinVoltage();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMinVCharId, (int)absMinV);
+  ble.sendCommandCheckOK(initBuf);
 
-    int cfgPctVal  = (int)(Config::getTargetPercentage() * 1000);
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgPctId, cfgPctVal);
-    ble.sendCommandCheckOK(initBuf);
+  int cfgAmpVal  = Config::getMaxCurrent();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgAmpId, cfgAmpVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    int cfgTimeVal = Config::getMaxChargeTime();
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgMaxTimeId, cfgTimeVal);
-    ble.sendCommandCheckOK(initBuf);
+  int cfgPctVal  = (int)(Config::getTargetPercentage() * 1000);
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgPctId, cfgPctVal);
+  ble.sendCommandCheckOK(initBuf);
 
-    // Seed on/off char (0xFF06) — charger starts on by default
-    snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,01", (int)cfgOnOffId);
-    ble.sendCommandCheckOK(initBuf);
-  }
+  int cfgTimeVal = Config::getMaxChargeTime();
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgMaxTimeId, cfgTimeVal);
+  ble.sendCommandCheckOK(initBuf);
+
+  // Seed on/off char (0xFF06) — charger starts on by default
+  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,01", (int)cfgOnOffId);
+  ble.sendCommandCheckOK(initBuf);
+  
 }
 
 void Ble::poll() {

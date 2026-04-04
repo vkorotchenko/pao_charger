@@ -20,11 +20,6 @@ float Config::getNominalMinMultiplier()
     return NOMINAL_MIN_MULT_DEFAULT / 100.0f;
 }
 
-bool Config::getAutoNominalFromCan()
-{
-    return Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) != 0;
-}
-
 void Config::setNominalMaxMultiplier(int valueX100)
 {
     if (EEPROM.isValid() && Config::getValueFromEEPROM(NOMINAL_MAX_MULT_DEFAULT, EEPROM_NOMINAL_MAX_MULT) == valueX100) return;
@@ -41,17 +36,9 @@ void Config::setNominalMinMultiplier(int valueX100)
     EEPROM.commit();
 }
 
-void Config::setAutoNominalFromCan(bool enable)
-{
-    int val = enable ? 1 : 0;
-    if (EEPROM.isValid() && Config::getValueFromEEPROM(AUTO_NOMINAL_FROM_CAN_DEFAULT, EEPROM_AUTO_NOMINAL_FROM_CAN) == val) return;
-    EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN,     (uint8_t)(val >> 8));
-    EEPROM.update(EEPROM_AUTO_NOMINAL_FROM_CAN + 1, (uint8_t)(val & 0xFF));
-    EEPROM.commit();
-}
 
 int Config::getNominalVoltage(){
-    return Config::getValueFromEEPROM(NOMINAL_VOLTAGE, EEPROM_NOMINAL_VOLTAGE);
+    return NOMINAL_VOLTAGE;
 }
 
 int Config::getMaxCurrent()
@@ -109,13 +96,6 @@ void Config::printAllValues()
     Logger::print("Max Charge time: %d s", Config::getMaxChargeTime());
 }
 
-void Config::setNominalVoltage(int newValue)
-{
-    if (EEPROM.isValid() && Config::getNominalVoltage() == newValue) return;
-    EEPROM.update(EEPROM_NOMINAL_VOLTAGE,     (uint8_t)(newValue >> 8));
-    EEPROM.update(EEPROM_NOMINAL_VOLTAGE + 1, (uint8_t)(newValue & 0xFF));
-    EEPROM.commit();
-}
 
 void Config::setMaxCurrent(int newValue)
 {
@@ -152,13 +132,11 @@ void Config::setMaxChargeTime(int newValue)
 
 void Config::resetToDefaults()
 {
-    Config::setNominalVoltage(NOMINAL_VOLTAGE);
     Config::setMaxCurrent(MAX_AMPS);
     Config::setMaxChargeTime(MAX_CHARGE_TIME);
     Config::setTargetPercentage(TARGET_PERCENTAGE);
     Config::setNominalMaxMultiplier(NOMINAL_MAX_MULT_DEFAULT);
     Config::setNominalMinMultiplier(NOMINAL_MIN_MULT_DEFAULT);
-    Config::setAutoNominalFromCan(false);
 }
 
 unsigned long Config::getConfigBroadcast1Id() {
