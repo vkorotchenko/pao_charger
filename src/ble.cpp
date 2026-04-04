@@ -190,16 +190,16 @@ void Ble::setup() {
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF11,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &socCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add soc char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &errorCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF12,PROPERTIES=0x12,MIN_LEN=1,MAX_LEN=2,VALUE=00"), &errorCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add error char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF20,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &nominalVoltCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add nominal volt char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &maxMultCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF21,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=2,VALUE=00"), &maxMultCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add max mult char");
 
-  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=1,VALUE=00"), &minMultCharId);
+  success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF22,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=2,VALUE=00"), &minMultCharId);
   if (!success) Logger::log(LOG_CAT_ERR, "Could not add min mult char");
 
   success = ble.sendCommandWithIntReply(F("AT+GATTADDCHAR=UUID=0xFF23,PROPERTIES=0x02,MIN_LEN=1,MAX_LEN=5,VALUE=0"), &absMaxVCharId);
