@@ -94,7 +94,6 @@ public:
     static void printAllValues();
     static float getNominalMaxMultiplier();
     static float getNominalMinMultiplier();
-
     static void setMaxCurrent(int newValue);
     static void setCanSpeed(int newValue);
     static void setTargetPercentage(float newValue);
