@@ -119,12 +119,6 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
       break;
     }
-    case CAN_CMD_SET_AUTO_NOMINAL: {
-      bool prev = Config::getAutoNominalFromCan();
-      Config::setAutoNominalFromCan(val != 0);
-      Logger::log(LOG_CAT_CAN, "  auto_nominal: %d -> %d. EEPROM saved.", (int)prev, (int)(val != 0));
-      break;
-    }
     default:
       Logger::log(LOG_CAT_CAN, "  unknown cmd %d — ignored", (int)cmd);
       break;
@@ -164,13 +158,6 @@ void canRead()
     {
       handleConfigSetCommand(buf, len);
     }
-    else if (receiveId == DMOC_BAT_VOLTAGE_ID && Config::getAutoNominalFromCan())
-    {
-      // Bat_Voltage: bytes 0-1, big-endian, 1/10th V (DMOC 0x650)
-      uint16_t rawVoltage = ((uint16_t)buf[0] << 8) | buf[1];
-      Config::setNominalVoltage((int)rawVoltage);
-      Logger::log(LOG_CAT_CAN, "Auto nominal: set from DMOC 0x650 -> %d (1/10th V)", (int)rawVoltage);
-    }
   }
 }
 
@@ -192,13 +179,12 @@ void canWriteConfig()
   uint16_t chgTime = (uint16_t)running_time;
   uint16_t maxTime = (uint16_t)Config::getMaxChargeTime();
   uint8_t  minMult = (uint8_t)(Config::getNominalMinMultiplier() * 100.0f);
-  uint8_t  autoNom = Config::getAutoNominalFromCan() ? 1 : 0;
   unsigned char frame2[8] = {
     (uint8_t)(Config::getTargetPercentage() * 100),
     (uint8_t)error_state,
     highByte(chgTime), lowByte(chgTime),
     highByte(maxTime), lowByte(maxTime),
-    minMult, autoNom
+    minMult, 0x00
   };
   CAN.MCP_CAN::sendMsgBuf(Config::getConfigBroadcast2Id(), ext, length, frame2);
 

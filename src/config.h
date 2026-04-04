@@ -31,7 +31,6 @@ PINS
 // Stored in EEPROM as int*100 (e.g. 114 = 1.14); use Config::getNominalMax/MinMultiplier()
 #define NOMINAL_MAX_MULT_DEFAULT 114
 #define NOMINAL_MIN_MULT_DEFAULT 81
-#define AUTO_NOMINAL_FROM_CAN_DEFAULT 0
 
 #define DEFAULT_EEPROM_VAL 0xFFFF
 
@@ -42,7 +41,7 @@ PINS
 #define CAN_SPEED 16          // can speed in 1000 kbps
 #define NOMINAL_VOLTAGE 3200  // nominal volatage for the battery pack in 1/10th of a volt
 #define TARGET_PERCENTAGE 0.95 // if we are limiting charging to x percente for battery life protection in thenth of a percent  1 to disable
-#define MAX_AMPS 200          // Max amp for the charger in 1/10 of an AMP
+#define MAX_AMPS 100          // Max amp for the charger in 1/10 of an AMP
 #define MAX_CHARGE_TIME 43200   // time in seconds before shutting off, 0 to disable 
 #define DISPLAY_NAME "Pao Charger" //ble name
 
@@ -58,10 +57,9 @@ PINS
 #define EEPROM_CONFIG_BROADCAST1_ID  22
 #define EEPROM_CONFIG_BROADCAST2_ID  26
 #define EEPROM_CONFIG_SET_ID         30
-// Multiplier + auto-nominal addresses (2 bytes each)
+// Multiplier addresses (2 bytes each)
 #define EEPROM_NOMINAL_MAX_MULT      34
 #define EEPROM_NOMINAL_MIN_MULT      36
-#define EEPROM_AUTO_NOMINAL_FROM_CAN 38
 
 /*
     CAN CONFIG BROADCAST / SET IDs (runtime configurable, stored in EEPROM)
@@ -72,9 +70,6 @@ PINS
 #define CONFIG_SET_DEFAULT               0x18FF60F4UL
 #define config_broadcast_interval        1000
 
-// DMOC electrical status frame (Bat_Voltage source for auto-nominal)
-#define DMOC_BAT_VOLTAGE_ID 0x650
-
 // Config set command IDs
 #define CAN_CMD_SET_MAX_TIME         0x01  // value = seconds (uint16)
 #define CAN_CMD_SET_TARGET_PCT       0x02  // value = percentage * 1000 (uint16, e.g. 950 = 95.0%)
@@ -82,7 +77,6 @@ PINS
 #define CAN_CMD_SET_NOMINAL_VOLTAGE  0x04  // value = 1/10th V (uint16)
 #define CAN_CMD_SET_NOMINAL_MAX_MULT 0x05  // value = multiplier * 100 (uint16, e.g. 114 = 1.14)
 #define CAN_CMD_SET_NOMINAL_MIN_MULT 0x06  // value = multiplier * 100 (uint16, e.g. 81 = 0.81)
-#define CAN_CMD_SET_AUTO_NOMINAL     0x07  // value = 0 (off) or 1 (on)
 
 #include <FlashAsEEPROM.h>
 #include "Logger.h"
@@ -102,8 +96,6 @@ public:
     static void printAllValues();
     static float getNominalMaxMultiplier();
     static float getNominalMinMultiplier();
-    static bool getAutoNominalFromCan();
-
     static void setNominalVoltage(int newValue);
     static void setMaxCurrent(int newValue);
     static void setCanSpeed(int newValue);
@@ -111,7 +103,6 @@ public:
     static void setMaxChargeTime(int newValue);
     static void setNominalMaxMultiplier(int valueX100);
     static void setNominalMinMultiplier(int valueX100);
-    static void setAutoNominalFromCan(bool enable);
     static void resetToDefaults();
 
     static unsigned long getConfigBroadcast1Id();
