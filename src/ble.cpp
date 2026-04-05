@@ -229,53 +229,25 @@ void Ble::setup() {
   // runs, so without this seeding it would read 0 for all values.
   // Config::get*() functions are safe here — they check EEPROM validity and fall back
   // to compile-time defaults if EEPROM is uninitialized.
+  // Seed GATT characteristics using the same ble.println(val, HEX) / waitForOK() pattern
+  // as the BLE loop. Using snprintf + sendCommandCheckOK produces identical AT+GATTCHAR
+  // commands on the wire but goes through a different code path; using print/println
+  // guarantees byte-for-byte identical encoding so mobile decodeCharValue sees the same
+  // ASCII hex format from both seed reads and live notifications.
   Logger::log(LOG_CAT_BLE, "BLE: seeding GATT table from EEPROM");
 
-  char initBuf[50];
-
-  int tVoltVal = Config::getTargetVoltage();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tVoltId, tVoltVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  int tAmpVal = Config::getMaxCurrent();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)tAmpId, tAmpVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  uint16_t nomV = (uint16_t)Config::getNominalVoltage();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)nominalVoltCharId, (int)nomV);
-  ble.sendCommandCheckOK(initBuf);
-
-  uint8_t maxMultVal = (uint8_t)(Config::getNominalMaxMultiplier() * 100);
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)maxMultCharId, maxMultVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  uint8_t minMultVal = (uint8_t)(Config::getNominalMinMultiplier() * 100);
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)minMultCharId, minMultVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  uint16_t absMaxV = (uint16_t)Config::getMaxVoltage();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMaxVCharId, (int)absMaxV);
-  ble.sendCommandCheckOK(initBuf);
-
-  uint16_t absMinV = (uint16_t)Config::getMinVoltage();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)absMinVCharId, (int)absMinV);
-  ble.sendCommandCheckOK(initBuf);
-
-  int cfgAmpVal  = Config::getMaxCurrent();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgAmpId, cfgAmpVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  int cfgPctVal  = (int)(Config::getTargetPercentage() * 1000);
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgPctId, cfgPctVal);
-  ble.sendCommandCheckOK(initBuf);
-
-  int cfgTimeVal = Config::getMaxChargeTime();
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,%X", (int)cfgMaxTimeId, cfgTimeVal);
-  ble.sendCommandCheckOK(initBuf);
-
+  ble.print(F("AT+GATTCHAR=")); ble.print(tVoltId);          ble.print(F(",")); ble.println(Config::getTargetVoltage(),                      HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(tAmpId);           ble.print(F(",")); ble.println(Config::getMaxCurrent(),                          HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(nominalVoltCharId); ble.print(F(",")); ble.println((uint16_t)Config::getNominalVoltage(),            HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(maxMultCharId);    ble.print(F(",")); ble.println((uint8_t)(Config::getNominalMaxMultiplier()*100),  HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(minMultCharId);    ble.print(F(",")); ble.println((uint8_t)(Config::getNominalMinMultiplier()*100),  HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(absMaxVCharId);    ble.print(F(",")); ble.println((uint16_t)Config::getMaxVoltage(),                HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(absMinVCharId);    ble.print(F(",")); ble.println((uint16_t)Config::getMinVoltage(),                HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgAmpId);         ble.print(F(",")); ble.println(Config::getMaxCurrent(),                          HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgPctId);         ble.print(F(",")); ble.println((int)(Config::getTargetPercentage()*1000),        HEX); ble.waitForOK();
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgMaxTimeId);     ble.print(F(",")); ble.println(Config::getMaxChargeTime(),                       HEX); ble.waitForOK();
   // Seed on/off char (0xFF06) — charger starts on by default
-  snprintf(initBuf, sizeof(initBuf), "AT+GATTCHAR=%d,01", (int)cfgOnOffId);
-  ble.sendCommandCheckOK(initBuf);
+  ble.print(F("AT+GATTCHAR=")); ble.print(cfgOnOffId);       ble.print(F(",")); ble.println(1,                                                HEX); ble.waitForOK();
   
 }
 
