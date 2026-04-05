@@ -132,7 +132,9 @@ void canRead()
       pv_current = (((float)buf[2] * 256.0) + ((float)buf[3])) / 10.0; // highByte/lowByte + offset
       pv_voltage = (((float)buf[0] * 256.0) + ((float)buf[1])) / 10.0; // highByte/lowByte + offset
 
-      //Logger::logIncomingMsg(receiveId, ext, length, pv_voltage, pv_current);
+      Logger::log(LOG_CAT_CAN, "CAN raw: [%02X %02X %02X %02X %02X %02X %02X %02X]",
+          buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+      Logger::log(LOG_CAT_CAN, "pv_voltage=%.1f pv_current=%.1f", pv_voltage, pv_current);
 
       // Check status flags using bitwise AND (multiple bits can be set simultaneously)
       if (buf[4] == 0) {
