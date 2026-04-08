@@ -78,14 +78,14 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
     case CAN_CMD_SET_MAX_TIME: {
       int prev = Config::getMaxChargeTime();
       Config::setMaxChargeTime((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_time: %d -> %d s (0=no limit). EEPROM saved.", prev, Config::getMaxChargeTime());
+      Logger::log(LOG_CAT_CAN, "  max_time: %d -> %d s (0=no limit). Prefrences saved.", prev, Config::getMaxChargeTime());
       break;
     }
     case CAN_CMD_SET_TARGET_PCT: {
       int prevPct  = (int)(Config::getTargetPercentage() * 1000);
       int prevTgtV = Config::getTargetVoltage();
       Config::setTargetPercentage((float)val / 1000.0f);
-      Logger::log(LOG_CAT_CAN, "  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. Prefrences saved.",
                   prevPct, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
@@ -93,7 +93,7 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prevAmp   = Config::getMaxCurrent();
       int prevTgtV  = Config::getTargetVoltage();
       Config::setMaxCurrent((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_current: %d -> %d (1/10th A). targetV unchanged: %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_current: %d -> %d (1/10th A). targetV unchanged: %d. Prefrences saved.",
                   prevAmp, Config::getMaxCurrent(), prevTgtV);
       break;
     }
@@ -101,14 +101,14 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prev     = (int)(Config::getNominalMaxMultiplier() * 100);
       int prevTgtV = Config::getTargetVoltage();
       Config::setNominalMaxMultiplier((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_mult: %d -> %d (/100). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_mult: %d -> %d (/100). targetV: %d -> %d. Prefrences saved.",
                   prev, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
     case CAN_CMD_SET_NOMINAL_MIN_MULT: {
       int prev = (int)(Config::getNominalMinMultiplier() * 100);
       Config::setNominalMinMultiplier((int)val);
-      Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
+      Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). Prefrences saved.", prev, (int)val);
       break;
     }
     default:
@@ -225,6 +225,7 @@ void canWrite()
 void setup()
 {
   Serial.begin(SERIAL_SPEED);
+  Config::init();
 
   //serialConsole = new SerialConsole();
   led = new Led(GREEN_PIN, ORANGE_PIN, RED_PIN);
@@ -253,8 +254,6 @@ void send_ble_info(){
 
 void loop()
 {
-  bt->poll();      // poll BLE for incoming writes every iteration — ensures bleConfigCallback
-                   // fires before canWrite(), not one cycle (1 s) later
   timer.run();
 
 	// serialConsole->loop();

@@ -9,10 +9,10 @@
 PINS
 */
 
-#define GREEN_PIN A0
-#define ORANGE_PIN A1
-#define RED_PIN A2
-#define SPI_CS_PIN 5 // CS Pins
+#define GREEN_PIN 26   // A0 on ESP32 Feather V2
+#define ORANGE_PIN 25  // A1 on ESP32 Feather V2
+#define RED_PIN 32     // GPIO32 (A2/GPIO34 is ADC input-only on ESP32)
+#define SPI_CS_PIN 33  // CAN CS (GPIO5 = SCK on ESP32, can't use as CS)
 #define CAN_INT_PIN = 6;
 /*
  * SERIAL CONFIGURATION
@@ -28,40 +28,21 @@ PINS
 #define FULL_CHARGE_MULTIPLIER 1.05
 #define MID_CHARGE_MULTIPLIER 1.04
 
-// Stored in EEPROM as int*100 (e.g. 114 = 1.14); use Config::getNominalMax/MinMultiplier()
-#define NOMINAL_MAX_MULT_DEFAULT 114
-#define NOMINAL_MIN_MULT_DEFAULT 81
-
-#define DEFAULT_EEPROM_VAL 0xFFFF
-
 /*
- * HARD CODED PARAMETERS
+ * HARD CODED PARAMETERS / DEFAULTS
  */
 
-#define CAN_SPEED 16          // can speed in 1000 kbps
-#define NOMINAL_VOLTAGE 1600  // nominal volatage for the battery pack in 1/10th of a volt
-#define TARGET_PERCENTAGE 0.95 // if we are limiting charging to x percente for battery life protection in thenth of a percent  1 to disable
-#define MAX_AMPS 100          // Max amp for the charger in 1/10 of an AMP
-#define MAX_CHARGE_TIME 43200   // time in seconds before shutting off, 0 to disable 
-#define DISPLAY_NAME "Pao Charger" //ble name
+#define CAN_SPEED 16           // can speed in 1000 kbps
+#define NOMINAL_VOLTAGE 1600   // nominal voltage for the battery pack in 1/10th of a volt
+#define TARGET_PERCENTAGE 0.95 // target charge percentage (0.0–1.0)
+#define MAX_AMPS 100           // max amp for the charger in 1/10 of an AMP
+#define MAX_CHARGE_TIME 43200  // time in seconds before shutting off, 0 to disable
+#define NOMINAL_MAX_MULT_DEFAULT 1.14f  // max voltage = nominal * this multiplier
+#define NOMINAL_MIN_MULT_DEFAULT 0.81f  // min voltage = nominal * this multiplier
+#define DISPLAY_NAME "Pao Charger"      // BLE advertised name
 
 /*
-    EEPROM ADDRESSES
-*/
-#define EEPROM_CAN_SPEED 12
-#define EEPROM_MAX_AMPS 16
-#define EEPROM_MAX_CHARGE_TIME 18
-#define EEPROM_TARGET_PERCENTAGE 20
-// CAN ID EEPROM addresses (4 bytes each, 32-bit IDs)
-#define EEPROM_CONFIG_BROADCAST1_ID  22
-#define EEPROM_CONFIG_BROADCAST2_ID  26
-#define EEPROM_CONFIG_SET_ID         30
-// Multiplier addresses (2 bytes each)
-#define EEPROM_NOMINAL_MAX_MULT      34
-#define EEPROM_NOMINAL_MIN_MULT      36
-
-/*
-    CAN CONFIG BROADCAST / SET IDs (runtime configurable, stored in EEPROM)
+    CAN CONFIG BROADCAST / SET IDs (runtime configurable, stored in Preferences)
 */
 #define CONFIG_BROADCAST_FRAME1_DEFAULT  0x18FFA0E5UL
 #define CONFIG_BROADCAST_FRAME2_DEFAULT  0x18FFA1E5UL
@@ -76,7 +57,6 @@ PINS
 #define CAN_CMD_SET_NOMINAL_MAX_MULT 0x05  // value = multiplier * 100 (uint16, e.g. 114 = 1.14)
 #define CAN_CMD_SET_NOMINAL_MIN_MULT 0x06  // value = multiplier * 100 (uint16, e.g. 81 = 0.81)
 
-#include <FlashAsEEPROM.h>
 #include "Logger.h"
 
 class Config
@@ -101,6 +81,7 @@ public:
     static void setNominalMaxMultiplier(int valueX100);
     static void setNominalMinMultiplier(int valueX100);
     static void resetToDefaults();
+    static void init();
 
     static unsigned long getConfigBroadcast1Id();
     static unsigned long getConfigBroadcast2Id();
@@ -108,11 +89,6 @@ public:
     static void setConfigBroadcast1Id(unsigned long newId);
     static void setConfigBroadcast2Id(unsigned long newId);
     static void setConfigSetId(unsigned long newId);
-
-private:
-
-    static int getValueFromEEPROM(int def, int addr);
-    static unsigned long getULFromEEPROM(unsigned long def, int addr);
 };
 
 #endif /* CONFIG_H_ */
