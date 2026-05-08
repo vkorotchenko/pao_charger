@@ -2,7 +2,7 @@
 #ifndef SERIALCONSOLE_H_
 #define SERIALCONSOLE_H_
 
-#include "Config.h"
+#include "config.h"
 #include "Logger.h"
 
 class SerialConsole {

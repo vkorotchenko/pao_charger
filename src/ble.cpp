@@ -1,5 +1,5 @@
 #include "ble.h"
-#include "Config.h"
+#include "config.h"
 #include "version.h"
 
 extern bool chargerEnabled;

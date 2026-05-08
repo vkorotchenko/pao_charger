@@ -1,4 +1,4 @@
-#include "Config.h"
+#include "config.h"
 #include <Preferences.h>
 
 static Preferences prefs;

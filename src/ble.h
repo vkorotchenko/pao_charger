@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include "Logger.h"
-#include "Config.h"
+#include "config.h"
 
 extern bool chargerEnabled;
 

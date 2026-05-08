@@ -2,7 +2,7 @@
 #include <SimpleTimer.h>
 #include "mcp2515_can.h"
 #include "Logger.h"
-#include "Config.h"
+#include "config.h"
 #include "led.h"
 #include "ble.h"
 #include "SerialConsole.h"
