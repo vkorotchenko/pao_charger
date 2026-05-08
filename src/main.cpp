@@ -7,6 +7,8 @@
 #include "ble.h"
 #include "SerialConsole.h"
 #include <SPI.h>
+#include <esp_system.h>
+#include <rom/rtc.h>
 
 #if SOFTWARE_SERIAL_AVAILABLE
   #include <SoftwareSerial.h>
@@ -18,8 +20,6 @@ unsigned char len = 8; // Length of received CAN message of either charger
 int length = 8; // Length of received CAN message of either charger
 unsigned char buf[8];  // Buffer for data from CAN message of either charger
 byte ext = 1;
-
-unsigned char voltamp[8] = {highByte(Config::getTargetVoltage()), lowByte(Config::getTargetVoltage()), highByte(Config::getMaxCurrent()), lowByte(Config::getMaxCurrent()), 0x00, 0x00, 0x00, 0x00};
 
 int error_state = 0;
 float pv_voltage;
@@ -40,6 +40,42 @@ SerialConsole *serialConsole;
 unsigned long charge_start_time;
 
 void send_ble_info();
+
+static const char* esp_reset_reason_str(esp_reset_reason_t r) {
+  switch (r) {
+    case ESP_RST_POWERON:   return "POWERON";
+    case ESP_RST_EXT:       return "EXT (reset pin)";
+    case ESP_RST_SW:        return "SW (esp_restart)";
+    case ESP_RST_PANIC:     return "PANIC (exception/abort)";
+    case ESP_RST_INT_WDT:   return "INT_WDT (interrupt watchdog)";
+    case ESP_RST_TASK_WDT:  return "TASK_WDT";
+    case ESP_RST_WDT:       return "WDT (other)";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP wake";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";
+    case ESP_RST_SDIO:      return "SDIO";
+    default:                return "UNKNOWN";
+  }
+}
+
+static void print_boot_diagnostics() {
+  esp_reset_reason_t reason = esp_reset_reason();
+  Serial.println();
+  Serial.println(F("=== BOOT DIAGNOSTICS ==="));
+  Serial.printf("reset_reason: %d (%s)\n", (int)reason, esp_reset_reason_str(reason));
+  Serial.printf("cpu0_reset:   %d   cpu1_reset: %d\n",
+                (int)rtc_get_reset_reason(0), (int)rtc_get_reset_reason(1));
+  Serial.printf("chip:         %s rev%d, %d core(s)\n",
+                ESP.getChipModel(), ESP.getChipRevision(), ESP.getChipCores());
+  Serial.printf("cpu_freq:     %d MHz   flash: %d bytes\n",
+                ESP.getCpuFreqMHz(), ESP.getFlashChipSize());
+  Serial.printf("free_heap:    %u   min_free_heap: %u\n",
+                (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMinFreeHeap());
+  Serial.printf("psram_size:   %u   free_psram:    %u\n",
+                (unsigned)ESP.getPsramSize(), (unsigned)ESP.getFreePsram());
+  Serial.printf("sdk:          %s\n", ESP.getSdkVersion());
+  Serial.println(F("========================"));
+  Serial.flush();
+}
 
 int getSOC()
 {
@@ -78,14 +114,14 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
     case CAN_CMD_SET_MAX_TIME: {
       int prev = Config::getMaxChargeTime();
       Config::setMaxChargeTime((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_time: %d -> %d s (0=no limit). EEPROM saved.", prev, Config::getMaxChargeTime());
+      Logger::log(LOG_CAT_CAN, "  max_time: %d -> %d s (0=no limit). Prefrences saved.", prev, Config::getMaxChargeTime());
       break;
     }
     case CAN_CMD_SET_TARGET_PCT: {
       int prevPct  = (int)(Config::getTargetPercentage() * 1000);
       int prevTgtV = Config::getTargetVoltage();
       Config::setTargetPercentage((float)val / 1000.0f);
-      Logger::log(LOG_CAT_CAN, "  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  target_pct: %d -> %d (pct*1000). targetV: %d -> %d. Prefrences saved.",
                   prevPct, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
@@ -93,7 +129,7 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prevAmp   = Config::getMaxCurrent();
       int prevTgtV  = Config::getTargetVoltage();
       Config::setMaxCurrent((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_current: %d -> %d (1/10th A). targetV unchanged: %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_current: %d -> %d (1/10th A). targetV unchanged: %d. Prefrences saved.",
                   prevAmp, Config::getMaxCurrent(), prevTgtV);
       break;
     }
@@ -101,14 +137,14 @@ void handleConfigSetCommand(unsigned char *data, unsigned char dataLen) {
       int prev     = (int)(Config::getNominalMaxMultiplier() * 100);
       int prevTgtV = Config::getTargetVoltage();
       Config::setNominalMaxMultiplier((int)val);
-      Logger::log(LOG_CAT_CAN, "  max_mult: %d -> %d (/100). targetV: %d -> %d. EEPROM saved.",
+      Logger::log(LOG_CAT_CAN, "  max_mult: %d -> %d (/100). targetV: %d -> %d. Prefrences saved.",
                   prev, (int)val, prevTgtV, Config::getTargetVoltage());
       break;
     }
     case CAN_CMD_SET_NOMINAL_MIN_MULT: {
       int prev = (int)(Config::getNominalMinMultiplier() * 100);
       Config::setNominalMinMultiplier((int)val);
-      Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). EEPROM saved.", prev, (int)val);
+      Logger::log(LOG_CAT_CAN, "  min_mult: %d -> %d (/100). Prefrences saved.", prev, (int)val);
       break;
     }
     default:
@@ -225,14 +261,24 @@ void canWrite()
 void setup()
 {
   Serial.begin(SERIAL_SPEED);
+  Serial.println();
+  Serial.println(F(">>> setup() entered"));
+  Serial.flush();
+  delay(1500);  // give USB-CDC / serial monitor time to attach so boot prints aren't lost
+  print_boot_diagnostics();
 
-  //serialConsole = new SerialConsole();
+  Serial.println(F("[boot] Config::init"));        Serial.flush();
+  Config::init();
+
+  Serial.println(F("[boot] Led::setup"));          Serial.flush();
   led = new Led(GREEN_PIN, ORANGE_PIN, RED_PIN);
   led->setup();
 
+  Serial.println(F("[boot] Ble::setup"));          Serial.flush();
   bt = new Ble();
   bt->setup();
 
+  Serial.println(F("[boot] CAN.begin"));           Serial.flush();
   while (CAN_OK != CAN.begin(Config::getCanSpeed()))
   {
     Logger::log(LOG_CAT_SYS, "waiting for CAN to intialize");
@@ -245,6 +291,8 @@ void setup()
   timer.setInterval(tcc_send_interval, canWrite);
   timer.setInterval(ble_interval, send_ble_info);
   timer.setInterval(config_broadcast_interval, canWriteConfig);
+  Serial.println(F("[boot] setup() done — entering loop()"));
+  Serial.flush();
 }
 
 void send_ble_info(){
@@ -253,8 +301,6 @@ void send_ble_info(){
 
 void loop()
 {
-  bt->poll();      // poll BLE for incoming writes every iteration — ensures bleConfigCallback
-                   // fires before canWrite(), not one cycle (1 s) later
   timer.run();
 
 	// serialConsole->loop();
