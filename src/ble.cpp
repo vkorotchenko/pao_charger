@@ -86,6 +86,31 @@ public:
     }
 };
 
+// 0xFF05 generic config-cmd dispatcher.
+// Wire format from mobile (writeConfigCmd): [cmdId, 0, valueHi, valueLo].
+// cmdId 5 = reset all stored config to compile-time defaults, then reboot so
+// every subsystem re-reads its values cleanly on the next boot.
+class ConfigCmdWriteCallback : public NimBLECharacteristicCallbacks {
+public:
+    void onWrite(NimBLECharacteristic* pChar) override {
+        auto val = pChar->getValue();
+        if (val.size() < 1) return;
+        uint8_t cmd = val[0];
+        Logger::log(LOG_CAT_BLE, "BLE CMD cmd=%d (len=%d)", (int)cmd, (int)val.size());
+        switch (cmd) {
+            case 5:
+                Logger::log(LOG_CAT_BLE, "BLE CMD: reset to defaults — clearing prefs and rebooting");
+                Config::resetToDefaults();
+                delay(100);  // let the log flush before reset
+                ESP.restart();
+                break;
+            default:
+                Logger::log(LOG_CAT_BLE, "BLE CMD: unknown cmd %d — ignored", (int)cmd);
+                break;
+        }
+    }
+};
+
 class OnOffWriteCallback : public NimBLECharacteristicCallbacks {
 public:
     void onWrite(NimBLECharacteristic* pChar) override {
@@ -162,12 +187,15 @@ void Ble::setup() {
                    NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY);
     pCfgTime = pSvc->createCharacteristic("FF03",
                    NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY);
+    pCfgCmd  = pSvc->createCharacteristic("FF05",
+                   NIMBLE_PROPERTY::WRITE);
     pOnOff   = pSvc->createCharacteristic("FF06",
                    NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY);
 
     pCfgAmp ->setCallbacks(new AmpWriteCallback(pCfgAmp));
     pCfgPct ->setCallbacks(new PctWriteCallback(pCfgPct));
     pCfgTime->setCallbacks(new TimeWriteCallback(pCfgTime));
+    pCfgCmd ->setCallbacks(new ConfigCmdWriteCallback());
     pOnOff  ->setCallbacks(new OnOffWriteCallback());
 
     // Status

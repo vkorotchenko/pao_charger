@@ -25,6 +25,7 @@ private:
     NimBLECharacteristic* pCfgAmp   = nullptr;  // 0xFF01  cfg max current   READ|WRITE|NOTIFY
     NimBLECharacteristic* pCfgPct   = nullptr;  // 0xFF02  cfg target pct    READ|WRITE|NOTIFY
     NimBLECharacteristic* pCfgTime  = nullptr;  // 0xFF03  cfg max time      READ|WRITE|NOTIFY
+    NimBLECharacteristic* pCfgCmd   = nullptr;  // 0xFF05  config cmd        WRITE  (data[0]=cmdId, data[2..3]=value)
     NimBLECharacteristic* pOnOff    = nullptr;  // 0xFF06  on/off            READ|WRITE|NOTIFY
     NimBLECharacteristic* pChgState = nullptr;  // 0xFF10  charge state      READ|NOTIFY
     NimBLECharacteristic* pSOC      = nullptr;  // 0xFF11  SOC percent       READ|NOTIFY
