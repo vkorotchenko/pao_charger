@@ -12,8 +12,8 @@ PINS
 #define GREEN_PIN 26   // A0 on ESP32 Feather V2
 #define ORANGE_PIN 25  // A1 on ESP32 Feather V2
 #define RED_PIN 32     // GPIO32 (A2/GPIO34 is ADC input-only on ESP32)
-#define SPI_CS_PIN 33  // CAN CS (GPIO5 = SCK on ESP32, can't use as CS)
-#define CAN_INT_PIN = 6;
+#define SPI_CS_PIN 14 // CAN CS (GPIO5 = SCK on ESP32, can't use as CS)
+#define CAN_INT_PIN 32  // GPIO27 (D6 on V2 header); GPIO6 is internal flash on ESP32
 /*
  * SERIAL CONFIGURATION
  */
