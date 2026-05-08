@@ -14,9 +14,16 @@
 #include <Preferences.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "ble.h"
 #include "Logger.h"
+
+// isCharging is owned by main.cpp (set inside canWrite() based on checkTimer()).
+// Pair it with chargerEnabled — together they drive the Elcon TCC frame's
+// enableBit (see main.cpp: enableBit = (isCharging && chargerEnabled) ? 0x00 : 0x01).
+extern bool isCharging;
 
 namespace ota {
 
@@ -29,6 +36,17 @@ uint32_t g_total_size = 0;
 uint32_t g_bytes_received = 0;
 uint32_t g_chunk_count_in_window = 0;
 uint8_t  g_expected_sha256[32] = {0};
+
+// Phase 5 force-disable: remember whether the user had charging enabled when
+// OTA started, so abort() can restore it. Untouched by end() — the reboot
+// blows away RAM state and the new firmware boots with whatever its default
+// chargerEnabled value is.
+static bool s_ota_saved_charger_enabled = false;
+
+// Stale-transfer watchdog: last time writeChunk() ran. Used by tickWatchdog()
+// to abort a half-stalled session that left chargerEnabled force-disabled.
+static uint32_t s_ota_last_chunk_millis = 0;
+constexpr uint32_t kWatchdogTimeoutMs = 10000;
 
 // Persisted across reboots — set in end() right before ESP.restart(), cleared
 // in verify(). Used by logBootStatus() to log whether the post-reboot run is
@@ -76,16 +94,9 @@ bool readOtaPendingFlag() {
 State currentState() { return g_state; }
 
 void begin(const uint8_t* payload, size_t len) {
-    Logger::log(LOG_CAT_BLE, "OTA BEGIN: payload_len=%u state=%d charger_on=%d",
-                (unsigned)len, (int)g_state, (int)chargerEnabled);
-
-    // Hard safety gate — never start an OTA while the charger is enabled.
-    // If a user is mid-charge, they need to explicitly stop first.
-    if (chargerEnabled) {
-        Logger::log(LOG_CAT_ERR, "OTA: rejected — chargerEnabled=true");
-        notify(STATUS_ERR_BUSY, 0);
-        return;
-    }
+    Logger::log(LOG_CAT_BLE, "OTA BEGIN: payload_len=%u state=%d (isChg=%d on=%d)",
+                (unsigned)len, (int)g_state,
+                (int)isCharging, (int)chargerEnabled);
 
     if (len != 36) {
         Logger::log(LOG_CAT_ERR, "OTA: bad payload length %u (want 36)", (unsigned)len);
@@ -94,9 +105,12 @@ void begin(const uint8_t* payload, size_t len) {
     }
 
     // If a previous session was in flight, abandon it before starting a new one.
+    // abort() restores any previously saved chargerEnabled before we overwrite it
+    // with the current value below.
     if (g_state == State::RECEIVING || g_state == State::READY) {
         Logger::log(LOG_CAT_BLE, "OTA: dropping previous session before new BEGIN");
         Update.abort();
+        chargerEnabled = s_ota_saved_charger_enabled;
         resetSession();
     }
 
@@ -113,6 +127,19 @@ void begin(const uint8_t* payload, size_t len) {
         return;
     }
 
+    // Phase 5 force-disable: instead of rejecting on busy, save the user's
+    // chargerEnabled, force it false, and wait long enough for at least one
+    // 1 Hz TCC frame (tcc_send_interval = 1000 ms in config.h) to ship with the
+    // enable bit cleared. The Elcon's comm-timeout is 5 s, so 1.5 s is well
+    // within margin. We sleep BEFORE Update.begin() because flash writes are
+    // the unsafe part — once the TCC frame goes out clean, the Elcon will stop
+    // delivering power and we can flash safely.
+    s_ota_saved_charger_enabled = chargerEnabled;
+    chargerEnabled = false;
+    Logger::log(LOG_CAT_BLE, "OTA: force-disabling charger (saved=%d), waiting 1500 ms for TCC frame",
+                (int)s_ota_saved_charger_enabled);
+    vTaskDelay(pdMS_TO_TICKS(1500));
+
     g_total_size = total;
     g_bytes_received = 0;
     g_chunk_count_in_window = 0;
@@ -120,14 +147,21 @@ void begin(const uint8_t* payload, size_t len) {
 
     // Update.begin() picks the inactive ota_X slot via esp_ota_get_next_update_partition.
     if (!Update.begin(g_total_size, U_FLASH)) {
-        Logger::log(LOG_CAT_ERR, "OTA: Update.begin failed (err=%d, total=%u)",
+        Logger::log(LOG_CAT_ERR, "OTA: Update.begin failed (err=%d, total=%u) — restoring chargerEnabled",
                     (int)Update.getError(), (unsigned)g_total_size);
+        // Critical: we already force-disabled. If Update.begin() failed the OTA
+        // never started, so we must restore the user's prior chargerEnabled
+        // before notifying — otherwise a failed BEGIN leaves the charger
+        // force-disabled until reboot.
+        chargerEnabled = s_ota_saved_charger_enabled;
         notify(STATUS_ERR_BEGIN_FAILED, 0);
         resetSession();
         return;
     }
 
     g_state = State::READY;
+    // Reset the watchdog so a slow first chunk doesn't trip it instantly.
+    s_ota_last_chunk_millis = millis();
     Logger::log(LOG_CAT_BLE, "OTA: READY — expecting %u bytes, ack window=%d chunks",
                 (unsigned)g_total_size, OTA_ACK_WINDOW_CHUNKS);
     notify(STATUS_READY, 0);
@@ -144,14 +178,18 @@ void writeChunk(const uint8_t* data, size_t len) {
     }
 
     g_state = State::RECEIVING;
+    s_ota_last_chunk_millis = millis();
 
     size_t written = Update.write(const_cast<uint8_t*>(data), len);
     if (written != len) {
-        Logger::log(LOG_CAT_ERR, "OTA: Update.write short (%u of %u, err=%d) at offset=%u",
+        Logger::log(LOG_CAT_ERR, "OTA: Update.write short (%u of %u, err=%d) at offset=%u — restoring chargerEnabled",
                     (unsigned)written, (unsigned)len, (int)Update.getError(),
                     (unsigned)g_bytes_received);
         notify(STATUS_ERR_WRITE_FAILED, g_bytes_received);
         Update.abort();
+        // Restore chargerEnabled — the OTA failed mid-flight, give the user
+        // back whatever charging state they had before BEGIN.
+        chargerEnabled = s_ota_saved_charger_enabled;
         resetSession();
         return;
     }
@@ -178,9 +216,11 @@ void end() {
     }
 
     if (g_bytes_received != g_total_size) {
-        Logger::log(LOG_CAT_ERR, "OTA: size mismatch — got %u, expected %u",
+        Logger::log(LOG_CAT_ERR, "OTA: size mismatch — got %u, expected %u — restoring chargerEnabled",
                     (unsigned)g_bytes_received, (unsigned)g_total_size);
         Update.abort();
+        // OTA never committed; restore the saved chargerEnabled.
+        chargerEnabled = s_ota_saved_charger_enabled;
         notify(STATUS_ERR_SIZE_MISMATCH, g_bytes_received);
         resetSession();
         return;
@@ -192,7 +232,10 @@ void end() {
     // true = set the new partition as the boot partition. Update.end() returns
     // true on full success (CRC valid, partition marked).
     if (!Update.end(true)) {
-        Logger::log(LOG_CAT_ERR, "OTA: Update.end failed (err=%d)", (int)Update.getError());
+        Logger::log(LOG_CAT_ERR, "OTA: Update.end failed (err=%d) — restoring chargerEnabled",
+                    (int)Update.getError());
+        // OTA never committed; restore the saved chargerEnabled.
+        chargerEnabled = s_ota_saved_charger_enabled;
         notify(STATUS_ERR_END_FAILED, g_bytes_received);
         resetSession();
         return;
@@ -213,11 +256,36 @@ void end() {
 void abort() {
     Logger::log(LOG_CAT_BLE, "OTA ABORT: state=%d bytes=%u",
                 (int)g_state, (unsigned)g_bytes_received);
-    if (g_state == State::RECEIVING || g_state == State::READY) {
+    bool wasActive = (g_state == State::RECEIVING || g_state == State::READY);
+    if (wasActive) {
         Update.abort();
+    }
+    // Restore the saved chargerEnabled. Only meaningful if we were actively
+    // running an OTA (otherwise s_ota_saved_charger_enabled is stale/default
+    // and chargerEnabled is whatever the user has set since). If the state
+    // was already IDLE, this abort() is a no-op call from a redundant cmd=12
+    // or a watchdog fire after another path already cleaned up — leave
+    // chargerEnabled alone in that case.
+    if (wasActive) {
+        chargerEnabled = s_ota_saved_charger_enabled;
+        Logger::log(LOG_CAT_BLE, "OTA: restored chargerEnabled=%d", (int)chargerEnabled);
     }
     resetSession();
     notify(STATUS_ABORTED, 0);
+}
+
+void tickWatchdog() {
+    // Only fires while we're actively receiving chunks. READY is intentionally
+    // excluded — it's a transient state right after begin(); the first chunk
+    // sets s_ota_last_chunk_millis again. If chunks never arrive, the user can
+    // disconnect (which auto-aborts) or send cmd=12.
+    if (g_state != State::RECEIVING) return;
+    uint32_t now = millis();
+    if ((now - s_ota_last_chunk_millis) > kWatchdogTimeoutMs) {
+        Logger::log(LOG_CAT_ERR, "OTA: watchdog — no chunk for >%u ms, aborting",
+                    (unsigned)kWatchdogTimeoutMs);
+        abort();
+    }
 }
 
 void verify() {

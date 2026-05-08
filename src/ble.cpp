@@ -195,6 +195,16 @@ public:
     void onWrite(NimBLECharacteristic* pChar) override {
         auto val = pChar->getValue();
         if (val.size() < 1) return;
+        // Phase 5 force-disable: while OTA is mid-flight the firmware has
+        // forced chargerEnabled=false to make the Elcon stand down. A user
+        // toggle here would defeat that, so silently reject. Mobile already
+        // disables the charger toggle UI during OTA; this is the firmware
+        // belt-and-suspenders.
+        if (ota::currentState() != ota::State::IDLE) {
+            Logger::log(LOG_CAT_BLE, "BLE SET charger on/off: rejected — OTA in progress (state=%d)",
+                        (int)ota::currentState());
+            return;
+        }
         bool prev = chargerEnabled;
         chargerEnabled = (val[0] != 0);
         Logger::log(LOG_CAT_BLE, "BLE SET charger on/off: %d -> %d", (int)prev, (int)chargerEnabled);
@@ -217,6 +227,17 @@ public:
 
     void onDisconnect(NimBLEServer* pServer) override {
         Logger::log(LOG_CAT_BLE, "BLE client disconnected, restarting advertising");
+        // Phase 5: if a client disconnects mid-OTA the force-disabled charger
+        // would stay force-disabled until reboot. Auto-abort so abort()
+        // restores the saved chargerEnabled. Skip if we're already past the
+        // point of no return (REBOOTING) — Update.end() already committed and
+        // ESP.restart() is imminent. IDLE is the common case and is a no-op.
+        ota::State otaState = ota::currentState();
+        if (otaState != ota::State::IDLE && otaState != ota::State::REBOOTING) {
+            Logger::log(LOG_CAT_BLE, "BLE disconnect during OTA (state=%d) — auto-aborting",
+                        (int)otaState);
+            ota::abort();
+        }
         NimBLEDevice::startAdvertising();
     }
 };
@@ -250,11 +271,13 @@ void Ble::seedReadableChars() {
 // ---------------------------------------------------------------------------
 
 void Ble::setup() {
-    // setMTU MUST be called before init() so the requested MTU is advertised
-    // during connection negotiation. Mobile negotiates down — effective per-
-    // chunk payload = (negotiated MTU) - 3. 517 is the BLE 5.0 maximum.
-    NimBLEDevice::setMTU(517);
+    // init() MUST come first — it brings up the NimBLE stack and creates the
+    // mutexes that setMTU touches. Calling setMTU before init triggers a boot
+    // panic (npl_freertos_mutex_pend with null handle).
+    // Mobile negotiates MTU down on connect — effective per-chunk payload =
+    // (negotiated MTU) - 3. 517 is the BLE 5.0 maximum.
     NimBLEDevice::init(DISPLAY_NAME);
+    NimBLEDevice::setMTU(517);
 
     NimBLEServer* pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new BleServerCallbacks(this));

@@ -313,4 +313,9 @@ void loop()
 	// serialConsole->loop();
   led->loop(error_state, getSOC());
   canRead();
+
+  // Phase 5 stale-transfer guard: if an OTA RECEIVING session goes idle for
+  // >10 s (BLE link dead but disconnect callback not fired, or peer just stops
+  // sending), abort and restore chargerEnabled. Cheap call; no-op outside OTA.
+  ota::tickWatchdog();
 }

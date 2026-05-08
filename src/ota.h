@@ -5,7 +5,13 @@
 // honours commands 10/11/12/13 on 0xFF05.
 //
 // SAFETY GATES (firmware-side):
-//   1. OTA_BEGIN is rejected with ERR_BUSY when chargerEnabled == true.
+//   1. OTA_BEGIN never rejects a busy charger. It saves chargerEnabled, force-
+//      disables it, waits ~1.5 s for at least one TCC frame to go out with the
+//      enable bit cleared, then proceeds with Update.begin(). On any abort
+//      path (Update.begin failure, cmd=12, BLE disconnect, stale-transfer
+//      watchdog) the saved chargerEnabled value is restored. While OTA is
+//      not IDLE, BLE writes to 0xFF06 (charger on/off) are silently rejected
+//      so the user can't defeat the force-disable mid-flash.
 //   2. Update.end(true) is called only after bytes_received == total_size.
 //   3. esp_ota_mark_app_valid_cancel_rollback() is called only from verify(),
 //      which is mobile-driven. If verify() never fires, the bootloader rolls
@@ -31,7 +37,7 @@ enum StatusCode : uint8_t {
     STATUS_COMMITTING        = 0x03,
     STATUS_REBOOTING         = 0x04,
     STATUS_VERIFIED          = 0x05,
-    STATUS_ERR_BUSY          = 0x10,
+    STATUS_ERR_BUSY          = 0x10,  // reserved for protocol stability — no longer emitted (Phase 5 force-disable replaces busy rejection)
     STATUS_ERR_BEGIN_FAILED  = 0x11,
     STATUS_ERR_WRITE_FAILED  = 0x12,
     STATUS_ERR_SIZE_MISMATCH = 0x13,
@@ -55,8 +61,11 @@ enum class State {
 #define OTA_ACK_WINDOW_CHUNKS 16
 #endif
 
-// Called from cmd dispatcher (cmd=10). Validates payload (36 bytes), checks
-// the chargerEnabled safety gate, and calls Update.begin(). Notifies on 0xFF27.
+// Called from cmd dispatcher (cmd=10). Validates payload (36 bytes), saves the
+// current chargerEnabled value and force-disables it, waits ~1.5 s for at least
+// one TCC frame to ship with the enable bit cleared, then calls Update.begin().
+// Notifies on 0xFF27. If Update.begin() fails the saved chargerEnabled value is
+// restored before emitting ERR_BEGIN_FAILED.
 void begin(const uint8_t* payload, size_t len);
 
 // Called from 0xFF26 write callback for each chunk. Calls Update.write().
@@ -67,8 +76,15 @@ void writeChunk(const uint8_t* data, size_t len);
 // sets NVS ota_pending, notifies REBOOTING, calls ESP.restart().
 void end();
 
-// Called from cmd dispatcher (cmd=12). Update.abort(), notify ABORTED.
+// Called from cmd dispatcher (cmd=12), the BLE disconnect callback, and the
+// stale-transfer watchdog. Update.abort(), restore the saved chargerEnabled
+// value (so we never leave the charger force-disabled), notify ABORTED.
 void abort();
+
+// Called from main loop. If currentState() == RECEIVING and no chunks have
+// arrived for >10 s, calls abort() to free Update state and restore
+// chargerEnabled. Cheap to call; no-op outside RECEIVING.
+void tickWatchdog();
 
 // Called from cmd dispatcher (cmd=13). If the NVS ota_pending flag is set,
 // calls esp_ota_mark_app_valid_cancel_rollback() and clears the flag.
