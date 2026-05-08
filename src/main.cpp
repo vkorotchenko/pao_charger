@@ -5,6 +5,7 @@
 #include "config.h"
 #include "led.h"
 #include "ble.h"
+#include "ota.h"
 #include "SerialConsole.h"
 #include <SPI.h>
 #include <esp_system.h>
@@ -277,6 +278,12 @@ void setup()
   Serial.println(F("[boot] Ble::setup"));          Serial.flush();
   bt = new Ble();
   bt->setup();
+
+  // OTA boot status: log-only. We deliberately do NOT auto-mark the new image
+  // as valid here — that's mobile-driven via cmd=13 / ota::verify(). If the
+  // mobile never confirms, the bootloader rolls back automatically on the
+  // next reboot. That's the safety net.
+  ota::logBootStatus();
 
   Serial.println(F("[boot] CAN.begin"));           Serial.flush();
   while (CAN_OK != CAN.begin(Config::getCanSpeed()))

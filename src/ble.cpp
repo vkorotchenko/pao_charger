@@ -1,8 +1,27 @@
 #include "ble.h"
 #include "config.h"
 #include "version.h"
+#include "ota.h"
 
 extern bool chargerEnabled;
+
+// File-static handle to 0xFF27 used by notifyOtaStatus(). Set inside
+// Ble::setup() once the characteristic is created. nullptr-safe — calls before
+// setup() finishes are a no-op.
+static NimBLECharacteristic* s_pOtaStat = nullptr;
+
+void notifyOtaStatus(uint8_t code, uint32_t bytesReceived) {
+    if (!s_pOtaStat) return;
+    uint8_t buf[5] = {
+        code,
+        (uint8_t)(bytesReceived & 0xFF),
+        (uint8_t)((bytesReceived >> 8) & 0xFF),
+        (uint8_t)((bytesReceived >> 16) & 0xFF),
+        (uint8_t)((bytesReceived >> 24) & 0xFF),
+    };
+    s_pOtaStat->setValue(buf, sizeof(buf));
+    s_pOtaStat->notify();
+}
 
 // ---------------------------------------------------------------------------
 // Compile-time clamp: each FW_VERSION_* field is packed as a single uint8.
@@ -113,9 +132,15 @@ public:
 };
 
 // 0xFF05 generic config-cmd dispatcher.
-// Wire format from mobile (writeConfigCmd): [cmdId, 0, valueHi, valueLo].
-// cmdId 5 = reset all stored config to compile-time defaults, then reboot so
-// every subsystem re-reads its values cleanly on the next boot.
+// Wire format from mobile (writeConfigCmd): [cmdId, 0, valueHi, valueLo] for
+// the legacy reset path. OTA commands (10/11/12/13) carry their own payload —
+// OTA_BEGIN ships 36 bytes of metadata after the cmd byte, others are bare.
+//
+// cmdId 5  = reset all stored config to compile-time defaults, then reboot.
+// cmdId 10 = OTA_BEGIN  (payload: 4-byte LE total_size + 32-byte sha256)
+// cmdId 11 = OTA_END    (no payload)
+// cmdId 12 = OTA_ABORT  (no payload)
+// cmdId 13 = OTA_VERIFY (no payload)
 class ConfigCmdWriteCallback : public NimBLECharacteristicCallbacks {
 public:
     void onWrite(NimBLECharacteristic* pChar) override {
@@ -130,10 +155,38 @@ public:
                 delay(100);  // let the log flush before reset
                 ESP.restart();
                 break;
+            case 10: {
+                // OTA_BEGIN — payload starts at byte 1, expect 36 bytes of meta.
+                const uint8_t* payload = (val.size() > 1) ? (val.data() + 1) : nullptr;
+                size_t payload_len = (val.size() > 1) ? (val.size() - 1) : 0;
+                ota::begin(payload, payload_len);
+                break;
+            }
+            case 11:
+                ota::end();
+                break;
+            case 12:
+                ota::abort();
+                break;
+            case 13:
+                ota::verify();
+                break;
             default:
                 Logger::log(LOG_CAT_BLE, "BLE CMD: unknown cmd %d — ignored", (int)cmd);
                 break;
         }
+    }
+};
+
+// 0xFF26 OTA chunk receiver. WRITE_WITHOUT_RESPONSE only: each callback
+// invocation = one chunk. Forwards directly to ota::writeChunk(); the ACK
+// window is managed inside ota.cpp.
+class OtaDataWriteCallback : public NimBLECharacteristicCallbacks {
+public:
+    void onWrite(NimBLECharacteristic* pChar) override {
+        auto val = pChar->getValue();
+        if (val.size() == 0) return;
+        ota::writeChunk(val.data(), val.size());
     }
 };
 
@@ -197,6 +250,10 @@ void Ble::seedReadableChars() {
 // ---------------------------------------------------------------------------
 
 void Ble::setup() {
+    // setMTU MUST be called before init() so the requested MTU is advertised
+    // during connection negotiation. Mobile negotiates down — effective per-
+    // chunk payload = (negotiated MTU) - 3. 517 is the BLE 5.0 maximum.
+    NimBLEDevice::setMTU(517);
     NimBLEDevice::init(DISPLAY_NAME);
 
     NimBLEServer* pServer = NimBLEDevice::createServer();
@@ -244,6 +301,13 @@ void Ble::setup() {
     // Firmware version (read + notify) — 4 bytes little-endian: maj,min,patch,build.
     pFwVer   = pSvc->createCharacteristic("FF25",
                    NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
+
+    // OTA — 0xFF26 chunk receiver (WRITE_NR only, no echo, no notify).
+    // 0xFF27 status notify (5 bytes: code + bytes_received LE).
+    pOtaData = pSvc->createCharacteristic("FF26", NIMBLE_PROPERTY::WRITE_NR);
+    pOtaStat = pSvc->createCharacteristic("FF27", NIMBLE_PROPERTY::NOTIFY);
+    pOtaData->setCallbacks(new OtaDataWriteCallback());
+    s_pOtaStat = pOtaStat;
 
     seedReadableChars();
 

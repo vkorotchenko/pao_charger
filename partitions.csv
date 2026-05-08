@@ -1,0 +1,12 @@
+# Charger partition layout — 8 MB flash, OTA-capable.
+# Two app slots ("ota_0" / "ota_1") let us flash a new image into the
+# inactive bank, mark it as boot, and roll back automatically if the new
+# image fails to call esp_ota_mark_app_valid_cancel_rollback() at boot.
+# Sized at 3 MB per slot — current build is ~660 KB, plenty of headroom.
+# Name,     Type, SubType,  Offset,    Size,      Flags
+nvs,        data, nvs,      0x9000,    0x5000
+otadata,    data, ota,      0xE000,    0x2000
+app0,       app,  ota_0,    0x10000,   0x300000
+app1,       app,  ota_1,    0x310000,  0x300000
+spiffs,     data, spiffs,   0x610000,  0x1E0000
+coredump,   data, coredump, 0x7F0000,  0x10000

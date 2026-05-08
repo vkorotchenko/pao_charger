@@ -8,6 +8,12 @@
 
 extern bool chargerEnabled;
 
+// 0xFF27 OTA status notify. ota.cpp calls this; ble.cpp owns the
+// characteristic. Always emits exactly 5 bytes: [code:u8][bytes:u32 LE].
+// Safe to call before any client subscribes — falls through quietly when the
+// characteristic doesn't exist yet (BLE not initialised).
+void notifyOtaStatus(uint8_t code, uint32_t bytesReceived);
+
 class Ble {
 public:
     void setup();
@@ -36,6 +42,8 @@ private:
     NimBLECharacteristic* pAbsMaxV  = nullptr;  // 0xFF23  abs max voltage   READ
     NimBLECharacteristic* pAbsMinV  = nullptr;  // 0xFF24  abs min voltage   READ
     NimBLECharacteristic* pFwVer    = nullptr;  // 0xFF25  firmware version  READ|NOTIFY  (4 bytes LE: maj,min,patch,build)
+    NimBLECharacteristic* pOtaData  = nullptr;  // 0xFF26  OTA chunk          WRITE_NR
+    NimBLECharacteristic* pOtaStat  = nullptr;  // 0xFF27  OTA status         NOTIFY  (5 bytes: code + bytes LE)
 
     static void setU16(NimBLECharacteristic* c, uint16_t v, bool notify = false);
     static void setU8 (NimBLECharacteristic* c, uint8_t  v, bool notify = false);
