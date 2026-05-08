@@ -1,7 +1,19 @@
 #include "ble.h"
 #include "Config.h"
+#include "version.h"
 
 extern bool chargerEnabled;
+
+// ---------------------------------------------------------------------------
+// Compile-time clamp: each FW_VERSION_* field is packed as a single uint8.
+// If we ever cross 255 in a field, take the cap and keep going — Phase 1
+// never asks for more precision than that.
+// ---------------------------------------------------------------------------
+static inline uint8_t clampU8(int v) {
+    if (v < 0)   return 0;
+    if (v > 255) return 255;
+    return (uint8_t)v;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers: pack values as raw big-endian binary and set/notify
@@ -22,6 +34,20 @@ void Ble::setU32(NimBLECharacteristic* c, uint32_t v, bool notify) {
     uint8_t buf[4] = {
         (uint8_t)(v >> 24), (uint8_t)(v >> 16),
         (uint8_t)(v >>  8), (uint8_t)(v      )
+    };
+    c->setValue(buf, 4);
+    if (notify) c->notify();
+}
+
+// 0xFF25 firmware version: 4 bytes little-endian — [major, minor, patch, build].
+// Each field is clamped to 255 (uint8 wire width). build = commits-since-tag,
+// 0 for a clean tag.
+void Ble::setFwVersion(NimBLECharacteristic* c, bool notify) {
+    uint8_t buf[4] = {
+        clampU8(FW_VERSION_MAJOR),
+        clampU8(FW_VERSION_MINOR),
+        clampU8(FW_VERSION_PATCH),
+        clampU8(FW_VERSION_BUILD),
     };
     c->setValue(buf, 4);
     if (notify) c->notify();
@@ -159,6 +185,11 @@ void Ble::seedReadableChars() {
     setU16(pCfgTime, (uint16_t)Config::getMaxChargeTime());
     uint8_t onOffVal = 0x01;
     pOnOff->setValue(&onOffVal, 1);
+
+    // Firmware version — seed value AND notify subscribers (if any) on every
+    // connect, so the mobile app sees the current charger version as soon as
+    // the GATT service is up.
+    setFwVersion(pFwVer, /*notify=*/true);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,7 +241,14 @@ void Ble::setup() {
     pAbsMaxV = pSvc->createCharacteristic("FF23", NIMBLE_PROPERTY::READ);
     pAbsMinV = pSvc->createCharacteristic("FF24", NIMBLE_PROPERTY::READ);
 
+    // Firmware version (read + notify) — 4 bytes little-endian: maj,min,patch,build.
+    pFwVer   = pSvc->createCharacteristic("FF25",
+                   NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
+
     seedReadableChars();
+
+    Logger::log(LOG_CAT_BLE, "BLE firmware version: %s (sha=%s)",
+                FW_VERSION_STRING, FW_VERSION_GIT_SHA);
 
     pSvc->start();
 

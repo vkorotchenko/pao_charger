@@ -35,10 +35,12 @@ private:
     NimBLECharacteristic* pMinMult  = nullptr;  // 0xFF22  min multiplier    READ
     NimBLECharacteristic* pAbsMaxV  = nullptr;  // 0xFF23  abs max voltage   READ
     NimBLECharacteristic* pAbsMinV  = nullptr;  // 0xFF24  abs min voltage   READ
+    NimBLECharacteristic* pFwVer    = nullptr;  // 0xFF25  firmware version  READ|NOTIFY  (4 bytes LE: maj,min,patch,build)
 
     static void setU16(NimBLECharacteristic* c, uint16_t v, bool notify = false);
     static void setU8 (NimBLECharacteristic* c, uint8_t  v, bool notify = false);
     static void setU32(NimBLECharacteristic* c, uint32_t v, bool notify = false);
+    static void setFwVersion(NimBLECharacteristic* c, bool notify = false);
 };
 
 #endif /* BLE_H_ */
