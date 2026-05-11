@@ -96,6 +96,31 @@ void verify();
 // back; this function never mutates state.
 void logBootStatus();
 
+// Manual NVS-based rollback. Called as the very first action in setup() after
+// Serial.begin(), BEFORE any subsystem (Config, Led, Ble) that could panic.
+//
+// WHY: Arduino-ESP32's Update.end(true) marks the new partition VALID directly
+// (it does not put it in PENDING_VERIFY), so the IDF bootloader's automatic
+// rollback never fires. Instead we count boot attempts of a pending image in
+// a dedicated NVS namespace ("ota_recovery") and, after 3 failed attempts,
+// swap the boot partition back to the image that was running when the OTA
+// was committed.
+//
+// Contract:
+//   - Idempotent. Safe to call exactly once per boot. No-op if no OTA pending.
+//   - May call ESP.restart() and never return (after a rollback swap).
+//   - Touches its own NVS namespace only — does not interact with Config NVS
+//     or the "ota" namespace used by setOtaPendingFlag().
+//
+// Lifecycle:
+//   end()    -> writes pending=1, attempts=0, prev_part=<running subtype>
+//   boot 1   -> attempts becomes 1, proceed (may panic and reboot)
+//   boot 2   -> attempts becomes 2, proceed
+//   boot 3   -> attempts becomes 3, swap to prev_part, clear state, reboot
+//   boot 4   -> in safe partition, no state, no-op
+//   verify() -> clears all keys; future boots are no-ops
+void checkBootRecovery();
+
 // Current state — used by ble.cpp::loop's logging if helpful.
 State currentState();
 

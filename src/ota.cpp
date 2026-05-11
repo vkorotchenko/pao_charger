@@ -56,6 +56,26 @@ constexpr uint32_t kWatchdogTimeoutMs = 10000;
 constexpr const char* kNvsNamespace = "ota";
 constexpr const char* kNvsKeyPending = "pending";
 
+// Manual NVS-based rollback (Phase 5 follow-up). Arduino-ESP32 doesn't enable
+// the IDF bootloader's PENDING_VERIFY mechanism, so we have to detect bricked
+// OTA images ourselves. Dedicated namespace so we don't collide with the
+// "ota" namespace above or the "charger" namespace used by Config.
+constexpr const char* kRecoveryNvsNamespace = "ota_recovery";
+constexpr const char* kRecoveryKeyPending   = "pending";    // bool: an OTA image is awaiting verify()
+constexpr const char* kRecoveryKeyAttempts  = "attempts";   // uint32: boot attempts of the pending image
+constexpr const char* kRecoveryKeyPrevPart  = "prev_part";  // uint8: subtype of the safe partition to roll back to
+
+// After N failed boots of a pending image, swap to the previously-running
+// partition. The user-visible behaviour: hold the device through ~3 reboots
+// and it self-recovers. The mobile cmd=13 OTA_VERIFY path on a healthy boot
+// clears the counter before this fires.
+constexpr uint32_t kRollbackTriggerAttempts = 3;
+
+// Defensive ceiling. If the rollback partition swap also fails to boot (e.g.
+// flash damage, both partitions corrupt), don't loop forever — clear state
+// after this many attempts and let the user USB-reflash.
+constexpr uint32_t kRollbackGiveUpAttempts = 5;
+
 void resetSession() {
     g_state = State::IDLE;
     g_total_size = 0;
@@ -252,6 +272,31 @@ void end() {
 
     setOtaPendingFlag(true);
 
+    // Manual rollback bookkeeping: remember the partition that just delivered
+    // the OTA (it's the "safe" image to roll back to) and reset the boot-
+    // attempt counter. checkBootRecovery() will increment attempts on every
+    // subsequent boot and swap back if it hits kRollbackTriggerAttempts.
+    {
+        Preferences nvs;
+        if (nvs.begin(kRecoveryNvsNamespace, /*readOnly=*/false)) {
+            const esp_partition_t* running = esp_ota_get_running_partition();
+            uint8_t prev_subtype = running ? (uint8_t)running->subtype : 0xFF;
+            nvs.putBool(kRecoveryKeyPending, true);
+            nvs.putUInt(kRecoveryKeyAttempts, 0);
+            nvs.putUChar(kRecoveryKeyPrevPart, prev_subtype);
+            nvs.end();
+            Logger::log(LOG_CAT_SYS,
+                        "OTA: armed manual rollback (prev_part subtype=0x%02x)",
+                        prev_subtype);
+        } else {
+            // If we can't write recovery state, the new image is still bootable
+            // but we lose the auto-rollback safety net. Log loudly. USB-reflash
+            // remains the recovery of last resort.
+            Logger::log(LOG_CAT_ERR,
+                        "OTA: failed to arm manual rollback (NVS begin rw failed)");
+        }
+    }
+
     Logger::log(LOG_CAT_SYS, "OTA: image committed, rebooting in 100ms");
     notify(STATUS_REBOOTING, g_bytes_received);
 
@@ -315,8 +360,111 @@ void verify() {
     }
 
     setOtaPendingFlag(false);
+
+    // Clear the manual-rollback recovery state too. From this point on, boot
+    // failures of this image are NOT counted toward an auto-swap — the user
+    // has explicitly confirmed the image is healthy. checkBootRecovery() on
+    // any future boot will see no pending flag and be a no-op.
+    {
+        Preferences nvs;
+        if (nvs.begin(kRecoveryNvsNamespace, /*readOnly=*/false)) {
+            nvs.clear();
+            nvs.end();
+            Logger::log(LOG_CAT_SYS, "OTA: cleared manual rollback state");
+        } else {
+            Logger::log(LOG_CAT_ERR,
+                        "OTA: verify could not clear recovery NVS (begin rw failed)");
+        }
+    }
+
     Logger::log(LOG_CAT_SYS, "OTA: image verified — rollback cancelled");
     notify(STATUS_VERIFIED, 0);
+}
+
+void checkBootRecovery() {
+    // Called from setup() as the very first action after Serial.begin(),
+    // before Config::init / Led / Ble setup. The whole point of running this
+    // early is to detect a bricked image BEFORE the panic-prone code runs.
+    //
+    // Output goes through Serial.printf (not Logger) because Logger's mask is
+    // gated by debug level and a recovery decision must be visible regardless.
+    Preferences nvs;
+    if (!nvs.begin(kRecoveryNvsNamespace, /*readOnly=*/false)) {
+        // Namespace doesn't exist yet (clean device, first boot, or never
+        // OTA'd). Nothing to do.
+        return;
+    }
+
+    bool pending = nvs.getBool(kRecoveryKeyPending, false);
+    if (!pending) {
+        nvs.end();
+        return;
+    }
+
+    // Increment unconditionally. Even if this boot ends up succeeding, we want
+    // the counter to reflect "another reboot of an unverified image" so that
+    // power-cycling without cmd=13 still trips rollback. cmd=13 is the only
+    // way to clear the counter.
+    uint32_t attempts = nvs.getUInt(kRecoveryKeyAttempts, 0) + 1;
+
+    // Defensive ceiling: if even the rollback path can't get us into a working
+    // image after this many tries, stop looping and let the user USB-reflash.
+    if (attempts >= kRollbackGiveUpAttempts) {
+        Serial.printf("[ota-recovery] %u attempts exhausted, giving up; clearing state. USB reflash required.\n",
+                      (unsigned)attempts);
+        Serial.flush();
+        nvs.clear();
+        nvs.end();
+        return;
+    }
+
+    if (attempts >= kRollbackTriggerAttempts) {
+        uint8_t prev_subtype = nvs.getUChar(kRecoveryKeyPrevPart, 0xFF);
+        Serial.printf("[ota-recovery] %u failed boots; rolling back to partition subtype 0x%02x\n",
+                      (unsigned)attempts, prev_subtype);
+        Serial.flush();
+
+        const esp_partition_t* safe = esp_partition_find_first(
+            ESP_PARTITION_TYPE_APP,
+            (esp_partition_subtype_t)prev_subtype,
+            NULL);
+
+        if (safe) {
+            esp_err_t err = esp_ota_set_boot_partition(safe);
+            if (err == ESP_OK) {
+                Serial.printf("[ota-recovery] boot partition set to %s, clearing state and rebooting\n",
+                              safe->label);
+                Serial.flush();
+                nvs.clear();
+                nvs.end();
+                delay(100);
+                ESP.restart();
+                // unreachable
+            }
+            Serial.printf("[ota-recovery] esp_ota_set_boot_partition failed err=%d; clearing state and proceeding\n",
+                          (int)err);
+            Serial.flush();
+            nvs.clear();
+            nvs.end();
+            return;
+        }
+
+        Serial.println(F("[ota-recovery] could not locate safe partition; clearing state and proceeding"));
+        Serial.flush();
+        nvs.clear();
+        nvs.end();
+        return;
+    }
+
+    // Persist the bumped counter and let setup() continue. If this boot ends
+    // up panicking, the next boot will see the higher counter and may trip
+    // rollback. If this boot ends up calling cmd=13 / verify(), the counter
+    // and pending flag will be cleared.
+    nvs.putUInt(kRecoveryKeyAttempts, attempts);
+    nvs.end();
+    Serial.printf("[ota-recovery] pending image, boot attempt %u/%u\n",
+                  (unsigned)attempts, (unsigned)kRollbackTriggerAttempts);
+    Serial.flush();
 }
 
 void logBootStatus() {

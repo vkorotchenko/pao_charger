@@ -266,6 +266,14 @@ void setup()
   Serial.println(F(">>> setup() entered"));
   Serial.flush();
   delay(1500);  // give USB-CDC / serial monitor time to attach so boot prints aren't lost
+
+  // OTA boot recovery — MUST run before Config::init, Led::setup, Ble::setup
+  // or anything else that could panic on a bricked image. If a pending OTA
+  // image has failed to verify after kRollbackTriggerAttempts boots, this
+  // function swaps the boot partition back and reboots; it does not return.
+  // On a healthy device with no pending image it's a fast no-op.
+  ota::checkBootRecovery();
+
   print_boot_diagnostics();
 
   Serial.println(F("[boot] Config::init"));        Serial.flush();
