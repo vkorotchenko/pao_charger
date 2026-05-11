@@ -1,0 +1,108 @@
+# Charger firmware release pipeline.
+# Triggered by pushing a tag matching `charger-v*` (e.g. `charger-v0.1.0`).
+# Builds the charger firmware via PlatformIO and publishes a GitHub Release
+# containing `charger-firmware-<version>.bin` plus a SHA256 checksum file.
+
+name: Charger Firmware Release
+
+on:
+  push:
+    tags:
+      - 'charger-v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: charger-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so gen_version.py can fall back to `git describe` if needed.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Derive version from tag
+        # Strip the `charger-v` prefix for use in asset filenames. gen_version.py
+        # reads GITHUB_REF_NAME directly, so no build flag injection is needed.
+        run: |
+          VERSION="${GITHUB_REF_NAME#charger-v}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          # Mark prerelease when the version contains a hyphen (e.g. -rc.1, -beta.2).
+          if [[ "$VERSION" == *-* ]]; then
+            echo "PRERELEASE=true" >> "$GITHUB_ENV"
+          else
+            echo "PRERELEASE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build charger firmware
+        run: pio run -e adafruit_feather_esp32_v2
+
+      - name: Stage release artifacts
+        # Copy (don't move) the firmware so PIO build cache stays intact for retries.
+        run: |
+          mkdir -p dist
+          BIN_SRC=".pio/build/adafruit_feather_esp32_v2/firmware.bin"
+          BIN_DST="dist/charger-firmware-${VERSION}.bin"
+          SHA_DST="dist/charger-firmware-${VERSION}.bin.sha256"
+          cp "$BIN_SRC" "$BIN_DST"
+          # `<digest>  <filename>` — sha256sum -c uses the filename literally,
+          # so use the basename to keep verification location-independent.
+          ( cd dist && sha256sum "charger-firmware-${VERSION}.bin" > "charger-firmware-${VERSION}.bin.sha256" )
+          ls -lh "$BIN_DST" "$SHA_DST"
+
+      - name: Write build summary
+        run: |
+          BIN="dist/charger-firmware-${VERSION}.bin"
+          SIZE_BYTES=$(stat -c%s "$BIN")
+          SIZE_KB=$(awk "BEGIN { printf \"%.1f\", ${SIZE_BYTES} / 1024 }")
+          DIGEST=$(awk '{print $1}' "dist/charger-firmware-${VERSION}.bin.sha256")
+          {
+            echo "## Charger Firmware ${VERSION}"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Version | \`${VERSION}\` |"
+            echo "| Tag | \`${GITHUB_REF_NAME}\` |"
+            echo "| Binary | \`charger-firmware-${VERSION}.bin\` |"
+            echo "| Size | ${SIZE_BYTES} bytes (${SIZE_KB} KiB) |"
+            echo "| SHA256 | \`${DIGEST}\` |"
+            echo "| Prerelease | ${PRERELEASE} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Charger Firmware ${{ env.VERSION }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/charger-firmware-${{ env.VERSION }}.bin
+            dist/charger-firmware-${{ env.VERSION }}.bin.sha256
