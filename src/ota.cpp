@@ -197,10 +197,19 @@ void writeChunk(const uint8_t* data, size_t len) {
     g_bytes_received += (uint32_t)len;
     g_chunk_count_in_window++;
 
-    if (g_chunk_count_in_window >= OTA_ACK_WINDOW_CHUNKS) {
+    // Emit ACK when a full window has been received OR when the transfer is
+    // complete. Without the transfer-complete branch, a partial final window
+    // (e.g. 14.6 chunks at the tail of a 663344-byte image with 244-byte
+    // chunks) would never be acknowledged and mobile would time out waiting
+    // for the last ACK before sending END.
+    bool window_full = (g_chunk_count_in_window >= OTA_ACK_WINDOW_CHUNKS);
+    bool transfer_complete = (g_bytes_received >= g_total_size);
+
+    if (window_full || transfer_complete) {
         g_chunk_count_in_window = 0;
-        Logger::log(LOG_CAT_BLE, "OTA: ACK at %u / %u",
-                    (unsigned)g_bytes_received, (unsigned)g_total_size);
+        Logger::log(LOG_CAT_BLE, "OTA: ACK at %u / %u%s",
+                    (unsigned)g_bytes_received, (unsigned)g_total_size,
+                    transfer_complete ? " (final)" : "");
         notify(STATUS_ACK, g_bytes_received);
     }
 }
